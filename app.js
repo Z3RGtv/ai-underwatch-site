@@ -2,10 +2,12 @@
 import {syncObservationUI} from './observation.js';
 import {mapSection,syncWorldMap} from './world-map.js';
 import { mountWardrobe } from './wardrobe.js';
+import {mountSpawnPicker} from './spawn-picker.js';
 import { publicView,loadTwitchPlayer,privacyView } from './public-view.js';
 import * as deployment from './deployment.js';
 const {playerServices}=deployment;
 let characterWardrobe = null;
+let characterSpawn=null,spawnPoll=null;
 // UI contract: see ../PLAYER-PORTAL-HANDOFF.md. Authentication belongs to the server.
 const API_BASE = window.TWITCH_RPG_API_BASE || '';
 const $ = s => document.querySelector(s);
@@ -44,7 +46,7 @@ async function request(path, body) {
   if(!response.ok)throw Object.assign(new Error(data.error || 'Could not complete the request.'),{status:response.status});
   return data;
 }
-function acceptState(data){state=data;state.agents=Array.isArray(data.agents)?data.agents:[];fetchedAt=Date.now();online=true;header();}
+function acceptState(data){state=data;state.agents=Array.isArray(data.agents)?data.agents:[];fetchedAt=Date.now();online=true;characterSpawn?.update(data.spawnChoices);header();}
 function clearIdentity(){state=null;whisperDraft='';suggestionDrafts={};search='';communityId=null;archiveRows=[];archiveUser=null;pendingActions.clear();closeDialog();header();}
 async function showSignIn(){
   document.title='AI Underwatch · A society under your eye';
@@ -121,9 +123,10 @@ function renderWorld(){
 }
 function renderCodex(){const p=state.pricing||{};return `<div class="page-wrap"><div class="page-intro"><h1>Rules.</h1></div><div class="codex-grid"><article class="panel codex-card"><h2>Character access</h2><ul><li>Own subscription or ${fmt(p.nonSubAgentPassPoints)} Channel Points.</li><li>Gift subs do not unlock characters.</li><li>${num(state.season?.maxAgents)||20} characters per season; full seasons use a waitlist.</li><li>First appearance included. Further changes require Channel Points.</li></ul></article><article class="panel codex-card"><h2>Whispers</h2><table class="tier-table"><thead><tr><th>Tier</th><th>Included</th><th>Extra</th></tr></thead><tbody>${[1,2,3].map(t=>`<tr><td>${t}</td><td>Every ${num(state.tiers?.[t]?.whisperCooldownSeconds||1800)/60} min</td><td>${fmt(p.extraWhisperBits)} Bits</td></tr>`).join('')}</tbody></table></article><article class="panel codex-card"><h2>Community voting</h2><ul><li>Suggest · ${fmt(p.communitySuggestionPoints)} Channel Points.</li><li>Vote · ${fmt(p.communityVotePoints)} Channel Points.</li><li>Up to ${fmt(state.communityVoting?.maxVotesPerUser||5)} votes per person, per suggestion.</li><li>Each agent receives its top suggestion every ${num(p.communityDispatchIntervalSeconds||1800)/60} min.</li></ul><a class="text-link" href="#comunidade">Community</a></article><article class="panel codex-card"><h2>Tokens</h2><p>Redeem on Twitch. Spend from your wallet.</p><button class="text-link" data-action="wallet">Wallet & prices</button></article></div></div>`;}
 function updateTimers(){if(!state)return;const a=ownAgent(),cd=remaining(a?.whisperCooldownRemainingSeconds);if($('#cooldownBadge')){$('#cooldownBadge').textContent=cd>0?clock(cd):'Ready';$('#whisperAvailability').textContent=cd>0?`Ready in ${clock(cd)}`:`Every ${num(a?.whisperTotalCooldownSeconds||1800)/60} min`;$('#sendWhisper').disabled=!canAct()||cd>0||!whisperDraft.trim();$('#extraWhisper').disabled=!canAct()||cd<=0||num(wallet().whisperCredits)<1||!whisperDraft.trim();}if($('#communityClock'))$('#communityClock').textContent=clock(remaining(state.communityVoting?.nextDispatchInSeconds));}
-function openDialog(html){characterWardrobe?.destroy();characterWardrobe=null;$('#dialog').classList.remove('wardrobe-dialog');$('#dialogBody').innerHTML=html;if(!$('#dialog').open)$('#dialog').showModal();}
-function closeDialog(){characterWardrobe?.destroy();characterWardrobe=null;$('#dialog').close();}
-$('#dialog').addEventListener('close',()=>{characterWardrobe?.destroy();characterWardrobe=null;});
+function disposeCustomizer(){characterWardrobe?.destroy();characterWardrobe=null;characterSpawn?.destroy();characterSpawn=null;clearInterval(spawnPoll);spawnPoll=null;}
+function openDialog(html){disposeCustomizer();$('#dialog').classList.remove('wardrobe-dialog');$('#dialogBody').innerHTML=html;if(!$('#dialog').open)$('#dialog').showModal();}
+function closeDialog(){disposeCustomizer();$('#dialog').close();}
+$('#dialog').addEventListener('close',disposeCustomizer);
 const productLabel=type=>({redeem_vote_token:'Vote',redeem_suggestion_token:'Suggestion',redeem_skin_change:'Appearance',redeem_camera_switch:'Side camera',bits_center_spotlight:'Main spotlight',bits_camera_lock:'Camera reservation',bits_global_rumor:'World rumor',redeem_sound_token:'Omen',redeem_gift_token:'Supplies',bits_gift_token:'Supplies',redeem_routine_token:'Routine',bits_routine_token:'Routine',bits_extra_whisper:'Whisper',sub:'Subscription',sub_expired:'Subscription',redeem_agent_pass:'Character pass',hear_sound:'Omen',divine_gift:'Supplies',global_rumor:'World rumor',routine_edit:'Routine change',routine_delete:'Routine removal'})[type]||'Token';
 const receiptRows=items=>items.map(r=>`<div class="receipt-row"><span>${esc(productLabel(r.type))}<small>${time(r.at)}</small></span><span class="receipt-status ${esc(r.status)}">${esc(({pending:'Pending',delivered:'Delivered',cancelled:'Cancelled',refunded:'Token returned',partial:'Partly delivered',review:'Checking delivery'})[r.status]||r.status)}</span></div>`).join('');
 function openWallet(){
@@ -138,6 +141,9 @@ function openCustomizer(){
   openDialog(`<h2 id="dialogTitle">Your appearance.</h2><form id="customizerForm"><div id="characterWardrobe"></div><fieldset class="wardrobe-save-fields" ${locked?'disabled':''}><label class="form-field">Character name<input name="customName" maxlength="22" required value="${esc(a?.customName||'')}"></label><label class="form-field">Title<input name="title" maxlength="32" value="${esc(a?.title||'')}"></label><label class="form-field">Mind<select name="modelKey">${models.map(m=>`<option value="${esc(m.key)}" ${m.key===a?.modelKey?'selected':''}>${esc(m.label)}</option>`).join('')}</select></label></fieldset><div class="wardrobe-save-row"><p>${policy}${locked?' <a href="https://www.twitch.tv/aiunderwatch" target="_blank" rel="noopener noreferrer">Twitch ↗</a>':''}</p><button class="btn" type="submit" ${!online||locked?'disabled':''}>${locked?'Appearance saved':saved?'Save appearance · 1 change':'Save appearance ↗'}</button></div></form>`);
   $('#dialog').classList.add('wardrobe-dialog');
   characterWardrobe=mountWardrobe($('#characterWardrobe'),{appearance:a?.appearance||{},locked});
+  const picker=document.createElement('section');$('#customizerForm .wardrobe-save-row').before(picker);
+  characterSpawn=mountSpawnPicker(picker,{choices:state.spawnChoices,selected:a?.initialSpawn?.slotId||'',locked:saved,onChange:id=>{$('#customizerForm button[type="submit"]').disabled=!online||locked||!id;}});
+  if(!saved){$('#customizerForm button[type="submit"]').disabled=true;spawnPoll=setInterval(async()=>{if(document.hidden||pending||refreshing)return;try{const data=await request('/api/rpg/state');if(!characterSpawn)return;acceptState(data);}catch{}},5000);}
 }
 function appearanceFromForm(){return characterWardrobe?.getAppearance()||{};}
 function drawArchive(){
@@ -209,7 +215,7 @@ document.addEventListener('submit',async e=>{
   const a=ownAgent(),d=Object.fromEntries(new FormData(f));
   if(f.id==='whisperForm'&&await mutate('/api/rpg/whisper',{agentId:a?.id,prompt:whisperDraft.trim(),useExtraCredit:false},'Whisper sent.')){whisperDraft='';render();}
   if(f.id==='suggestionForm'&&await mutate('/api/rpg/community/suggest',{agentId:communityId,text:suggestionDrafts[communityId]?.trim()},'Suggestion added.')){suggestionDrafts[communityId]='';render();}
-  if(f.id==='customizerForm'){const appearance=appearanceFromForm();if(await mutate('/api/rpg/customize',{customName:d.customName.trim(),title:d.title.trim(),modelKey:d.modelKey,appearance},'Appearance saved and locked.'))closeDialog();}
+  if(f.id==='customizerForm'){const appearance=appearanceFromForm(),spawnSlotId=characterSpawn?.getSelected();if(!a&&!spawnSlotId)return toast('Choose an available spawn on the map.',true);if(await mutate('/api/rpg/customize',{customName:d.customName.trim(),title:d.title.trim(),modelKey:d.modelKey,appearance,spawnSlotId},'Appearance saved and locked.'))closeDialog();else if(!a)try{acceptState(await request('/api/rpg/state'));}catch{}}
   if(f.id==='routineForm'){const steps=d.steps==='say'?'say:'+d.speech:d.steps;if(await mutate('/api/rpg/routine',{agentId:a?.id,routineId:f.dataset.id,action:'edit',name:d.name,trigger:d.trigger,steps},demo()?'Routine saved.':'Routine change queued.'))closeDialog();}
   if(f.id==='extraForm'){
     const type=f.dataset.type,camera=['camera','switch','spotlight'].includes(type);f.dataset.requestId??=crypto.randomUUID();
