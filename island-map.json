@@ -1,0 +1,14 @@
+{
+  "worldId": "island-008",
+  "title": "The first island",
+  "image": "island-terrain.png",
+  "bounds": {
+    "x": -384,
+    "z": -576,
+    "width": 1024,
+    "height": 1024
+  },
+  "islandWidth": 640,
+  "oceanBuffer": 192,
+  "terrainAsOf": "2026-10-26T18:23:04.155Z"
+}
