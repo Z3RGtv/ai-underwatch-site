@@ -8,4 +8,12 @@
 @media(max-width:760px){#siteShell .watch-hero{min-height:600px}.public-minds{grid-template-columns:repeat(2,1fr);gap:12px}.community-person{padding:19px 10px}.community-person h2{font-size:17px}.community-person canvas{height:190px}.observed-heading{padding:20px}.observed-heading h2{font-size:27px}.observed-tabs{gap:20px;padding:0 20px}.observed-content{padding:20px}.observed-overview{grid-template-columns:110px 1fr;gap:15px}.observed-overview>canvas{height:200px}.observed-stats{grid-template-columns:repeat(2,1fr);margin-top:22px}.observed-stats dd{font-size:20px}.observed-intention{grid-column:1/-1}.observed-inventory{gap:4px}.observed-item img{padding:4px}.observed-item b{right:2px;bottom:1px;font-size:10px}.twitch-signin{font-size:10px;padding:9px 10px}.world-rail summary{font-size:16px}}
 
 .account-nav:has(.twitch-signin:not([hidden])) .wallet-button{display:none}
+/* Keep the Refuge banner full width, with conversations beside the stream below. */
+@media(min-width:1101px){
+  #siteShell:has(.watch-hero){max-width:none;padding:0;row-gap:0;grid-template-columns:minmax(0,1fr) clamp(340px,22vw,420px)}
+  #siteShell:has(.watch-hero)>main{grid-column:1/-1;grid-row:1/span 2;display:grid;grid-template-columns:subgrid;grid-template-rows:subgrid}
+  #siteShell .watch-hero{grid-column:1/-1;grid-row:1;min-height:660px}
+  #siteShell:has(.watch-hero) .watch-wrap{grid-column:1;grid-row:2;width:100%;padding-left:5vw;padding-right:0}
+  #siteShell:has(.watch-hero)>.world-rail{grid-column:2;grid-row:2;margin-right:3vw;z-index:1}
+}
 @media(max-width:760px){.masthead{gap:0}.masthead .brand{gap:6px}.masthead .brand>span{font-size:15px}.masthead .account-nav{gap:6px}}
