@@ -4,4 +4,4 @@ Public website assets only.
 
 Watch: https://www.twitch.tv/aiunderwatch
 
-The game backend, player data and credentials are hosted separately. Player access opens after production integration is verified.
+The game backend, player data and credentials are hosted separately. Player sign-in uses the separate, private backend.

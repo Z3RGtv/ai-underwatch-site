@@ -50,6 +50,7 @@ async function showSignIn(){
   document.title='AI Underwatch · A society under your eye';
   let session;try{session=await request('/api/rpg/auth/session');online=true;}catch{session={};online=false;}
   publicSession={...session,servicesAvailable:online&&session.servicesAvailable!==false};
+  if(state&&session.authenticated){header();return;}
   header();
   $('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});
   if(page==='mundo')document.querySelector('.watch-wrap')?.scrollIntoView();
