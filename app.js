@@ -18,6 +18,7 @@ let page = location.hash.slice(1) || 'refugio', journal = 'resumo', speechFilter
 let whisperDraft = '', suggestionDrafts = {}, toastTimer;
 let publicSession={};
 let archiveRows=[],archiveCursor=null,archiveKind='all',archiveBusy=false,archiveUser=null;
+const pendingActions=new Map();
 const pages = ['refugio','mundo','comunidade','codice'];
 const ownAgent = () => state?.agents?.find(a => a.id === state.currentUser?.agentId && a.ownerId === state.currentUser?.id);
 const wallet = () => state?.currentUser?.wallet || {};
@@ -41,7 +42,7 @@ async function request(path, body) {
   return data;
 }
 function acceptState(data){state=data;state.agents=Array.isArray(data.agents)?data.agents:[];fetchedAt=Date.now();online=true;header();}
-function clearIdentity(){state=null;whisperDraft='';suggestionDrafts={};search='';communityId=null;archiveRows=[];archiveUser=null;closeDialog();header();}
+function clearIdentity(){state=null;whisperDraft='';suggestionDrafts={};search='';communityId=null;archiveRows=[];archiveUser=null;pendingActions.clear();closeDialog();header();}
 async function showSignIn(){
   document.title='AI Underwatch · A society under your eye';
   let session;try{session=await request('/api/rpg/auth/session');online=true;}catch{session={};online=false;}
@@ -59,11 +60,14 @@ async function refresh(force=false){
 }
 async function mutate(path,body,message){
   if(!canAct())return toast('Waiting for connection.',true);
+  const {requestId:_oldRequest,actionAt:_oldTime,...choice}=body,key=path+':'+JSON.stringify(choice);
+  if(!pendingActions.has(key))pendingActions.set(key,{...choice,requestId:crypto.randomUUID(),actionAt:Date.now()});
+  const action=pendingActions.get(key);if(pendingActions.size>100)pendingActions.delete(pendingActions.keys().next().value);
   pending=true;updateTimers();
   const disabledBefore = new Map([...document.querySelectorAll('button[data-spend], form button[type=submit]')].map(el=>[el,el.disabled]));
   disabledBefore.forEach((_,el)=>el.disabled=true);
-  try{const data=await request(path,body);if(data.state)acceptState(data.state);else acceptState(await request('/api/rpg/state'));toast(message);return true;}
-  catch(error){if(error.status===401){online=false;clearIdentity();await showSignIn();}toast(error.message,true);return false;}
+  try{const data=await request(path,action);pendingActions.delete(key);if(data.state)acceptState(data.state);else acceptState(await request('/api/rpg/state'));toast(message);return true;}
+  catch(error){if(error.status===409)pendingActions.delete(key);if(error.status===401){online=false;clearIdentity();await showSignIn();}toast(error.message,true);return false;}
   finally{pending=false;render();disabledBefore.forEach((disabled,el)=>{if(el.isConnected)el.disabled=disabled;});}
 }
 function header(){
@@ -80,6 +84,7 @@ function render(){
   document.title=`${({refugio:'Refuge',mundo:'World',comunidade:'Community',codice:'Rules'})[page]} · AI Underwatch`;
   $('#main').innerHTML=({refugio:renderHome,mundo:renderWorld,comunidade:renderCommunity,codice:renderCodex})[page]();drawAvatars();updateTimers();
   const journalSection=document.querySelector('.journal-section');if(journalSection){const button=document.createElement('button');button.className='text-link archive-button';button.dataset.action='history-archive';button.textContent='Journal archive ↗';journalSection.prepend(button);}
+  document.querySelectorAll('.avatar-label').forEach(label=>{if(!label.textContent.trim())label.remove();});
 }
 function renderHome(){
   const a=ownAgent();
