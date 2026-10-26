@@ -22,7 +22,9 @@ export function mountSpawnPicker(root,{choices,selected='',locked=false,onChange
       const choose=()=>{if(!available)return;selection=s.slotId;draw();onChange(selection);};
       node.addEventListener('click',choose);node.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();choose();}});markers.append(node);
     }
-    count.textContent=`${data.slots.filter(s=>s.status==='available').length} available · 4 community`;
+    const places=data.playerPlacesAvailable??16,free=data.slots.filter(s=>s.status==='available'||s.status==='community-pool').length;
+    count.textContent=places>0?`${free} free spots · ${places} player places`:`${free} spots · Community pool`;
+    root.querySelector('.spawn-legend').innerHTML=places>0?'<span class="available">Available</span><span class="occupied">Occupied</span>':'<span class="occupied">Occupied</span><span class="community-pool">Community pool</span>';
     status.textContent=selection?`${selection} · ${locked?'Initial spawn saved':'Selected'}`:'Select a free marker';
     if(!locked)onChange(selection);
   }
