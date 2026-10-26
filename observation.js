@@ -1,4 +1,5 @@
-import {playerServices} from './deployment.js';
+import * as deployment from './deployment.js';
+const {playerServices}=deployment;
 import './avatar.js';
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $=s=>document.querySelector(s),pretty=s=>String(s??'').replaceAll('_',' ');
@@ -13,7 +14,7 @@ function drawCards(){const target=$('#publicCommunityRoster');if(!target)return;
   target.innerHTML=data.map(a=>`<button class="community-person panel" type="button" data-inspect-agent="${safe(a.id)}" aria-label="View ${safe(a.name)}"><span class="eyebrow">COMMUNITY ${safe(a.id.slice(1))}</span><canvas width="280" height="320" aria-hidden="true" data-community-portrait="${safe(a.id)}"></canvas><h2>${safe(a.name)}</h2><span class="community-mind">${safe(a.model)} · ${safe(a.effort)}</span><span class="community-presence">${a.status==='running'?'In the world':a.status==='offline'?'Offline':'Preparing'}</span></button>`).join('');
   for(const a of data)portrait(target.querySelector(`[data-community-portrait="${a.id}"]`),a.appearance);
 }
-export function syncObservationUI({apiBase:base=''}={}){apiBase=base;
+export function syncObservationUI({apiBase:base=''}={}){apiBase=deployment.publicWorldOrigin||base;
   const node=$('[data-community-inspector]');if(node!==inlineRoot){inlineRoot=node;profileKey='';if(selected&&node){node.hidden=false;renderProfile();}}
   drawCards();if(started)return;started=true;
   let rail=$('.world-rail');if(rail&&!rail.querySelector('details')){rail.outerHTML=railMarkup();rail=$('.world-rail');}if(rail){const media=matchMedia('(max-width:1100px)'),adapt=()=>rail.querySelectorAll('details').forEach(d=>d.open=!media.matches);adapt();media.addEventListener('change',adapt);}

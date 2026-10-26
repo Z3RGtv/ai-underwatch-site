@@ -1,4 +1,5 @@
-import {playerServices} from './deployment.js';
+import * as deployment from './deployment.js';
+const {playerServices}=deployment;
 
 export const mapSection = () => `<section class="island-atlas" aria-label="Island map" data-island-map><header class="atlas-heading"><div><span class="eyebrow">THE LIVING WORLD</span><h2>The first island.</h2></div><span class="atlas-state" role="status"><i></i><span>Connecting</span></span></header><div class="atlas-stage"><div class="atlas-viewport" tabindex="0" role="region" aria-label="Interactive island map. Use arrow keys to pan, plus or minus to zoom, and Home to fit."><canvas aria-hidden="true"></canvas><div class="atlas-markers"></div><span class="atlas-north" aria-hidden="true">N</span><div class="atlas-tools" aria-label="Map controls"><button type="button" data-map="in" aria-label="Zoom in">+</button><button type="button" data-map="out" aria-label="Zoom out">−</button><button type="button" data-map="fit">Fit</button></div><span class="atlas-scale"><span></span><b></b></span><span class="atlas-empty">Waiting for inhabitants</span></div><aside class="atlas-agent" hidden aria-label="Character details"></aside></div><footer class="atlas-footer"><label>Follow <select aria-label="Follow a character"><option value="">Explore freely</option></select></label><span class="atlas-detail">Scroll to zoom · Drag to explore</span></footer><div class="atlas-terrain-note"><span>Surface map · Block detail</span><span>640 × 640 blocks</span></div></section>`;
 
@@ -9,7 +10,7 @@ export function syncWorldMap({apiBase=''}={}) {
   const root=document.querySelector('[data-island-map]');
   if(current?.root===root)return;
   current?.destroy();current=null;
-  if(root)current=mount(root,apiBase);
+  if(root)current=mount(root,deployment.publicWorldOrigin||apiBase);
 }
 function mount(root,apiBase){
   const view=root.querySelector('.atlas-viewport'),canvas=root.querySelector('canvas'),ctx=canvas.getContext('2d'),
