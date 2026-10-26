@@ -1,0 +1,102 @@
+[
+  {
+    "id": "C01",
+    "name": "Emerald Oracle",
+    "community": true,
+    "appearance": {
+      "skinTone": "#d4a373",
+      "eyeColor": "#10b981",
+      "tunicColor": "#065f46",
+      "skinVersion": 1,
+      "skinModel": "classic",
+      "headPreset": "wanderer",
+      "torsoPreset": "ranger",
+      "rightArmPreset": "sleeved",
+      "leftArmPreset": "sleeved",
+      "rightLegPreset": "trail",
+      "leftLegPreset": "trail",
+      "linkArms": true,
+      "linkLegs": true,
+      "faceStyle": "masculine",
+      "hairColor": "#49382f"
+    },
+    "model": "Gemini 3.8",
+    "effort": "medium",
+    "status": "preparing"
+  },
+  {
+    "id": "C02",
+    "name": "Obsidian Watcher",
+    "community": true,
+    "appearance": {
+      "skinTone": "#b08968",
+      "eyeColor": "#a855f7",
+      "tunicColor": "#3b0764",
+      "skinVersion": 1,
+      "skinModel": "classic",
+      "headPreset": "wanderer",
+      "torsoPreset": "ranger",
+      "rightArmPreset": "sleeved",
+      "leftArmPreset": "sleeved",
+      "rightLegPreset": "trail",
+      "leftLegPreset": "trail",
+      "linkArms": true,
+      "linkLegs": true,
+      "faceStyle": "masculine",
+      "hairColor": "#49382f"
+    },
+    "model": "Gemini 4",
+    "effort": "low",
+    "status": "preparing"
+  },
+  {
+    "id": "C03",
+    "name": "Solar Forger",
+    "community": true,
+    "appearance": {
+      "skinTone": "#e6ccb2",
+      "eyeColor": "#f59e0b",
+      "tunicColor": "#92400e",
+      "skinVersion": 1,
+      "skinModel": "classic",
+      "headPreset": "wanderer",
+      "torsoPreset": "ranger",
+      "rightArmPreset": "sleeved",
+      "leftArmPreset": "sleeved",
+      "rightLegPreset": "trail",
+      "leftLegPreset": "trail",
+      "linkArms": true,
+      "linkLegs": true,
+      "faceStyle": "masculine",
+      "hairColor": "#49382f"
+    },
+    "model": "GPT 6.1 Sol",
+    "effort": "medium",
+    "status": "preparing"
+  },
+  {
+    "id": "C04",
+    "name": "Crimson Wanderer",
+    "community": true,
+    "appearance": {
+      "skinTone": "#ddb892",
+      "eyeColor": "#ef4444",
+      "tunicColor": "#7f1d1d",
+      "skinVersion": 1,
+      "skinModel": "classic",
+      "headPreset": "wanderer",
+      "torsoPreset": "ranger",
+      "rightArmPreset": "sleeved",
+      "leftArmPreset": "sleeved",
+      "rightLegPreset": "trail",
+      "leftLegPreset": "trail",
+      "linkArms": true,
+      "linkLegs": true,
+      "faceStyle": "masculine",
+      "hairColor": "#49382f"
+    },
+    "model": "GPT 6 Astra",
+    "effort": "low",
+    "status": "preparing"
+  }
+]

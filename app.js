@@ -1,4 +1,5 @@
 'use strict';
+import {syncObservationUI} from './observation.js';
 import {mapSection,syncWorldMap} from './world-map.js';
 import { mountWardrobe } from './wardrobe.js';
 import { publicView,loadTwitchPlayer,privacyView } from './public-view.js';
@@ -49,7 +50,7 @@ async function showSignIn(){
   let session;try{session=await request('/api/rpg/auth/session');online=true;}catch{session={};online=false;}
   publicSession={...session,servicesAvailable:online&&session.servicesAvailable!==false};
   header();
-  $('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});
+  $('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});
   if(page==='mundo')document.querySelector('.watch-wrap')?.scrollIntoView();
 }
 async function refresh(force=false){
@@ -76,14 +77,15 @@ function header(){
   $('#environmentLabel').textContent=state&&demo()?'DEMO':state?'SEASON':'PREPARING';
   $('#walletCount').closest('button').disabled=!state;
   $('#walletCount').textContent=state?fmt(Object.entries(wallet()).filter(([k])=>/Tokens$|Credits$/.test(k)).reduce((s,[,v])=>s+num(v),0)):'—';
+  $('#twitchSignIn').hidden=Boolean(state);$('#twitchSignIn').disabled=!publicSession.oauthConfigured;$('#twitchSignIn').title=publicSession.oauthConfigured?'Log in with Twitch':'Sign-in opens soon';$('.account-button').hidden=!state;
   $('#accountInitial').textContent=(state?.currentUser?.displayName || '?').slice(0,1).toUpperCase();
   document.querySelectorAll('[data-page]').forEach(el=>{if(el.dataset.page===page)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');});
 }
 function drawAvatars(){document.querySelectorAll('[data-avatar]').forEach(canvas=>{const a=state.agents.find(a=>a.id===canvas.dataset.avatar);if(a)window.drawVoxelAvatar(canvas,a.appearance);});}
 function render(){
-  if(!state){header();$('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});return;} if(!pages.includes(page))page='refugio';header();
+  if(!state){header();$('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});return;} if(!pages.includes(page))page='refugio';header();
   document.title=`${({refugio:'Refuge',mundo:'World',comunidade:'Community',codice:'Rules'})[page]} · AI Underwatch`;
-  $('#main').innerHTML=({refugio:renderHome,mundo:renderWorld,comunidade:renderCommunity,codice:renderCodex})[page]();drawAvatars();updateTimers();syncWorldMap({apiBase:API_BASE});
+  $('#main').innerHTML=({refugio:renderHome,mundo:renderWorld,comunidade:renderCommunity,codice:renderCodex})[page]();drawAvatars();updateTimers();syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});
   const journalSection=document.querySelector('.journal-section');if(journalSection){const button=document.createElement('button');button.className='text-link archive-button';button.dataset.action='history-archive';button.textContent='Journal archive ↗';journalSection.prepend(button);}
   document.querySelectorAll('.avatar-label').forEach(label=>{if(!label.textContent.trim())label.remove();});
 }
@@ -108,7 +110,7 @@ function speechResults(a){return feed((a.spokenAndHeard||[]).filter(m=>(speechFi
 function renderCommunity(){
   const agents=state.agents.filter(a=>a.isCommunity);if(!agents.some(a=>a.id===communityId))communityId=agents[0]?.id;
   const selected=agents.find(a=>a.id===communityId), suggestions=(state.communityVoting?.suggestions||[]).filter(s=>s.agentId===communityId&&s.status==='open').sort((a,b)=>num(b.votes)-num(a.votes)||new Date(a.createdAt)-new Date(b.createdAt));
-  return `<div class="page-wrap"><div class="page-intro"><div><h1>Community.</h1></div><div class="countdown"><small>NEXT DISPATCH</small><span id="communityClock">—</span></div></div><div class="community-grid">${agents.map((a,i)=>`<button class="community-card ${a.id===communityId?'selected':''}" data-community="${esc(a.id)}" aria-pressed="${a.id===communityId}"><div class="portrait" style="--accent:${color(a.appearance?.tunicColor)}">${avatar(a)}</div><div class="card-copy"><h3>${esc(a.customName)}</h3><p>${esc(a.appearance?.trait||'Community agent')}</p><div class="card-footer"><span>AGENT 0${i+1}</span><span>${(state.communityVoting?.suggestions||[]).filter(s=>s.agentId===a.id&&s.status==='open').length} queued</span></div></div></button>`).join('')}</div><div class="community-layout"><section><div class="section-title"><h3>Queue · ${esc(selected?.customName||'agent')}</h3></div>${suggestions.map((s,i)=>{const used=num(s.voters?.[state.currentUser?.id]),max=num(state.communityVoting?.maxVotesPerUser)||5;return `<article class="queue-item"><span class="rank">${String(i+1).padStart(2,'0')}</span><div class="queue-text"><p>${esc(s.text)}</p><small>${esc(s.authorName)} · ${used}/${max} votes used</small></div><button class="vote-button" data-action="vote" data-id="${esc(s.id)}" data-spend ${!canAct()||num(wallet().voteTokens)<1||used>=max?'disabled':''} aria-label="Vote on suggestion ${i+1}, spend 1 token"><strong>${fmt(s.votes)}</strong>↑ Vote</button></article>`;}).join('')||empty('No suggestions yet.')}</section><section class="panel suggest-panel"><h3>Suggest a whisper</h3><form id="suggestionForm"><label for="suggestionText">To ${esc(selected?.customName||'community')}</label><textarea id="suggestionText" maxlength="220" placeholder="Write a suggestion…" required>${esc(suggestionDrafts[communityId]||'')}</textarea><button type="submit" class="btn full" data-spend ${!canAct()||!selected||num(wallet().suggestionTokens)<1?'disabled':''}>Suggest · 1 token</button></form><p class="balance-note">Suggestions · ${fmt(wallet().suggestionTokens)} / Votes · ${fmt(wallet().voteTokens)}</p><button class="text-link" data-action="wallet">Wallet</button></section></div></div>`;
+  return `<div class="page-wrap"><div class="page-intro"><div><h1>Community.</h1></div><div class="countdown"><small>NEXT DISPATCH</small><span id="communityClock">—</span></div></div><div class="community-grid">${agents.map((a,i)=>`<button class="community-card ${a.id===communityId?'selected':''}" data-community="${esc(a.id)}" data-inspect-agent="${esc(a.id)}" aria-pressed="${a.id===communityId}"><div class="portrait" style="--accent:${color(a.appearance?.tunicColor)}">${avatar(a)}</div><div class="card-copy"><h3>${esc(a.customName)}</h3><p>${esc(a.appearance?.trait||'Community agent')}</p><div class="card-footer"><span>AGENT 0${i+1}</span><span>${(state.communityVoting?.suggestions||[]).filter(s=>s.agentId===a.id&&s.status==='open').length} queued</span></div></div></button>`).join('')}</div><section data-community-inspector hidden></section><div class="community-layout"><section><div class="section-title"><h3>Queue · ${esc(selected?.customName||'agent')}</h3></div>${suggestions.map((s,i)=>{const used=num(s.voters?.[state.currentUser?.id]),max=num(state.communityVoting?.maxVotesPerUser)||5;return `<article class="queue-item"><span class="rank">${String(i+1).padStart(2,'0')}</span><div class="queue-text"><p>${esc(s.text)}</p><small>${esc(s.authorName)} · ${used}/${max} votes used</small></div><button class="vote-button" data-action="vote" data-id="${esc(s.id)}" data-spend ${!canAct()||num(wallet().voteTokens)<1||used>=max?'disabled':''} aria-label="Vote on suggestion ${i+1}, spend 1 token"><strong>${fmt(s.votes)}</strong>↑ Vote</button></article>`;}).join('')||empty('No suggestions yet.')}</section><section class="panel suggest-panel"><h3>Suggest a whisper</h3><form id="suggestionForm"><label for="suggestionText">To ${esc(selected?.customName||'community')}</label><textarea id="suggestionText" maxlength="220" placeholder="Write a suggestion…" required>${esc(suggestionDrafts[communityId]||'')}</textarea><button type="submit" class="btn full" data-spend ${!canAct()||!selected||num(wallet().suggestionTokens)<1?'disabled':''}>Suggest · 1 token</button></form><p class="balance-note">Suggestions · ${fmt(wallet().suggestionTokens)} / Votes · ${fmt(wallet().voteTokens)}</p><button class="text-link" data-action="wallet">Wallet</button></section></div></div>`;
 }
 function renderWorld(){
   const slots=Array.isArray(state.cameras?.slots)?state.cameras.slots:Object.values(state.cameras?.slots||{});
@@ -167,6 +169,7 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;
+  if(b.dataset.action==='twitch-signin'){if(publicSession.oauthConfigured)location.assign(API_BASE+'/api/rpg/auth/twitch/login');return;}
   if(b.dataset.action==='load-stream'){loadTwitchPlayer();return;}
   if(b.dataset.action==='privacy'){openDialog(privacyView());return;}
   if(b.dataset.journal){journal=b.dataset.journal;const y=scrollY;render();window.scrollTo(0,y);return;}
