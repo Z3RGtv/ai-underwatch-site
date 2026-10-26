@@ -10,5 +10,9 @@
   },
   "islandWidth": 640,
   "oceanBuffer": 192,
-  "terrainAsOf": "2026-10-26T18:23:04.155Z"
+  "terrainAsOf": "2026-10-26T18:23:04.155Z",
+  "detailImage": "island-detail.png",
+  "blocksPerPixel": 1,
+  "tileSize": 64,
+  "surfaceVersion": 1
 }
