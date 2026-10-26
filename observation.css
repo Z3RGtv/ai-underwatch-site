@@ -15,5 +15,11 @@
   #siteShell .watch-hero{grid-column:1/-1;grid-row:1;min-height:660px}
   #siteShell:has(.watch-hero) .watch-wrap{grid-column:1;grid-row:2;width:100%;padding-left:5vw;padding-right:0}
   #siteShell:has(.watch-hero)>.world-rail{grid-column:2;grid-row:2;margin-right:3vw;z-index:1}
+  #siteShell:has(main>.hero){max-width:none;padding:0;row-gap:0;grid-template-columns:minmax(0,1fr) clamp(340px,22vw,420px)}
+  #siteShell:has(main>.hero)>main{grid-column:1/-1;grid-row:1/span 3;display:grid;grid-template-columns:subgrid;grid-template-rows:subgrid}
+  #siteShell main>.hero{grid-column:1/-1;grid-row:1}
+  #siteShell:has(main>.hero) .season-availability{grid-column:1/-1;grid-row:2}
+  #siteShell:has(main>.hero) .page-wrap{grid-column:1;grid-row:3;width:100%;padding-left:5vw;padding-right:0}
+  #siteShell:has(main>.hero)>.world-rail{grid-column:2;grid-row:3;margin-right:3vw;z-index:1}
 }
 @media(max-width:760px){.masthead{gap:0}.masthead .brand{gap:6px}.masthead .brand>span{font-size:15px}.masthead .account-nav{gap:6px}}
