@@ -9,6 +9,8 @@ let current=null;
 export function syncWorldMap({apiBase=''}={}) {
   const root=document.querySelector('[data-island-map]');
   if(current?.root===root)return;
+  // Account refreshes rebuild the page; keep the existing live map and selection.
+  if(root&&current&&!current.root.isConnected){root.replaceWith(current.root);return;}
   current?.destroy();current=null;
   if(root)current=mount(root,deployment.publicWorldOrigin||apiBase);
 }
@@ -16,7 +18,7 @@ function mount(root,apiBase){
   const view=root.querySelector('.atlas-viewport'),canvas=root.querySelector('canvas'),ctx=canvas.getContext('2d'),
     pins=root.querySelector('.atlas-markers'),select=root.querySelector('select'),state=root.querySelector('.atlas-state'),
     panel=root.querySelector('.atlas-agent'),detail=root.querySelector('.atlas-detail'),empty=root.querySelector('.atlas-empty'),controller=new AbortController();
-  let terrain,image,dead=false,frame,timer,w=1,h=1,scale=1,agents=[],lastOptions='',footerKey='',lastSuccess=0,detailImage,terrainEpoch='',terrainRevision=0,lastView='',tileBusy=0,detailBusy=false,detailAt=0,detailKey='',nextTilesAt=0;
+  let terrain,image,dead=false,frame,timer,w=1,h=1,scale=1,agents=[],lastOptions='',footerKey='',lastSuccess=0,emptySince=0,detailSuccess=0,detailImage,terrainEpoch='',terrainRevision=0,lastView='',tileBusy=0,detailBusy=false,detailAt=0,detailKey='',nextTilesAt=0;
   const elements=new Map(),pointers=new Map(),tiles=new Map(),tileQueue=new Map();let pinch=null;
   const on=(el,event,fn,options={})=>el.addEventListener(event,fn,{...options,signal:controller.signal});
   function fit(level=1){if(!terrain)return;camera.x=terrain.bounds.x+terrain.bounds.width/2;camera.z=terrain.bounds.z+terrain.bounds.height/2;camera.zoom=level;camera.following=false;select.value="";}
@@ -25,7 +27,12 @@ function mount(root,apiBase){
   function markState(live,label){state.dataset.live=String(live);if(state.lastElementChild.textContent!==label)state.lastElementChild.textContent=label;empty.hidden=live;}
   function clearLive(label='Connection lost'){agents=[];pins.replaceChildren();elements.clear();lastOptions='';select.replaceChildren(new Option('Explore freely',''));markState(false,label);camera.following=false;detail.textContent='Scroll to zoom · Drag to explore';if(camera.selected)showOfflinePanel();}
   function accept(data){
+    if(dead)return;
     if(data.worldId!==terrain.worldId||!Number.isFinite(data.at)||!Array.isArray(data.inhabitants))throw Error('Wrong map snapshot');
+    if(data.terrain)acceptTiles(data.terrain);
+    // Debounce a temporarily empty frame, but never keep an offline world live.
+    if(agents.length&&!data.inhabitants.length){emptySince||=Date.now();if(Date.now()-emptySince<2000)return;}
+    else emptySince=0;
     const received=performance.now(),previous=new Map(agents.map(a=>[a.id,a]));
     agents=data.inhabitants.slice(0,20).filter(a=>/^(?:C0[1-4]|A\d{2,8})$/.test(a.id)&&Number.isFinite(a.x)&&Number.isFinite(a.z)).map(a=>{
       const old=previous.get(a.id);return {...a,name:String(a.name).slice(0,40),from:old&&Math.hypot(old.x-a.x,old.z-a.z)<16?position(old,received):{x:a.x,z:a.z},received};
@@ -38,7 +45,6 @@ function mount(root,apiBase){
     if(!agents.some(a=>a.id===camera.selected))camera.following=false;
     select.value=camera.following?camera.selected:'';
     markState(agents.length>0,agents.length?`${agents.length} in the world`:'World offline');
-    if(data.terrain)acceptTiles(data.terrain);
     updateDetail();if(camera.selected&&Date.now()-detailAt>=1000)void loadAgent();
   }
   function choose(id,follow=false){camera.selected=id;camera.following=follow;select.value=follow?id:'';if(follow)camera.zoom=Math.max(camera.zoom,3);detailKey='';panel.innerHTML=panelHeader(agents.find(a=>a.id===id)?.name||'Character',agents.find(a=>a.id===id)?.community)+'<p class="atlas-agent-empty">Loading…</p>';updateDetail();void loadAgent();}
@@ -68,13 +74,13 @@ function mount(root,apiBase){
     const id=camera.selected;detailBusy=true;detailAt=Date.now();panel.hidden=false;
     if(!detailKey)panel.innerHTML=panelHeader(agents.find(a=>a.id===id)?.name||'Character',agents.find(a=>a.id===id)?.community)+'<p class="atlas-agent-empty">Loading…</p>';
     try{const response=await fetch(apiBase+'/api/rpg/world-map/agent/'+encodeURIComponent(id),{cache:'no-store',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(3000)])});if(!response.ok)throw Error('Character offline');const data=await response.json();if(dead||camera.selected!==id)return;
-      const key=JSON.stringify([data.id,data.name,data.stats,data.inventoryView,data.inventory,data.activity,camera.following]);if(key===detailKey)return;detailKey=key;
+      detailSuccess=Date.now();const key=JSON.stringify([data.id,data.name,data.stats,data.inventoryView,data.inventory,data.activity,camera.following]);if(key===detailKey)return;detailKey=key;
       const stats=data.stats??{},value=n=>typeof n==='number'&&Number.isFinite(n)?Math.round(n*10)/10:'—',v=data.inventoryView;
       const bar=(label,n,cls)=>`<div class="atlas-vital ${cls}"><span>${label}</span><strong>${value(n)} <small>/ 20</small></strong><i><b style="width:${typeof n==='number'?clamp(n/20*100,0,100):0}%"></b></i></div>`;
       const focus=panel.contains(document.activeElement)?document.activeElement.dataset.mapAgent:null;
       panel.innerHTML=panelHeader(data.name,data.community)+`<button type="button" class="atlas-follow" data-map-agent="follow">${camera.following?'Following · Stop':'Follow on map'}</button><div class="atlas-agent-vitals">${bar('Health',stats.health,'health')}${bar('Hunger',stats.hunger,'hunger')}</div><dl class="atlas-agent-stats">${[['Armor',stats.armor],['Level',stats.xpLevel],['Deaths',stats.deaths],['Wellbeing',stats.wellbeing]].map(([label,n])=>`<div><dt>${label}</dt><dd>${value(n)}</dd></div>`).join('')}</dl>${data.activity?`<div class="atlas-activity">${safe(pretty(data.activity))}</div>`:''}<h4>Inventory</h4>${v?`<div class="atlas-equipped" aria-label="Armor and offhand">${v.armor.map(a=>slot(a)).join('')}${slot(v.offhand)}</div><div class="atlas-bag" aria-label="Backpack">${v.backpack.map(a=>slot(a)).join('')}</div><div class="atlas-hotbar" aria-label="Hotbar">${v.hotbar.map((a,i)=>slot(a,i===v.selectedSlot)).join('')}</div>`:Array.isArray(data.inventory)&&data.inventory.length?`<div class="atlas-bag summary">${data.inventory.map(a=>slot(a)).join('')}</div>`:'<p class="atlas-agent-empty">No items.</p>'}`;
       if(focus)panel.querySelector(`[data-map-agent="${focus}"]`)?.focus();
-    }catch{if(!dead&&camera.selected===id)showOfflinePanel();}finally{detailBusy=false;}
+    }catch{if(!dead&&camera.selected===id&&(!detailKey||Date.now()-detailSuccess>=10000))showOfflinePanel();}finally{detailBusy=false;}
   }
   on(panel,'click',e=>{const action=e.target.closest('[data-map-agent]')?.dataset.mapAgent;if(action==='close'){camera.selected='';camera.following=false;panel.hidden=true;select.value='';detailKey='';updateDetail();}else if(action==='follow'){camera.following=!camera.following;if(camera.following)camera.zoom=Math.max(camera.zoom,3);select.value=camera.following?camera.selected:'';detailKey='';updateDetail();void loadAgent();}});
   function draw(now){
@@ -114,7 +120,7 @@ function mount(root,apiBase){
   }
   async function poll(){
     if(dead||playerServices==='unavailable')return;
-    if(!document.hidden)try{const b=terrain.bounds,view=[Math.floor((camera.x-w/2/scale)/64)*64-64,Math.floor((camera.z-h/2/scale)/64)*64-64,Math.ceil((camera.x+w/2/scale)/64)*64+64,Math.ceil((camera.z+h/2/scale)/64)*64+64].map((v,i)=>clamp(v,i%2?b.z:b.x,i%2?b.z+b.height:b.x+b.width)).join(',');if(view!==lastView){terrainRevision=0;lastView=view;}const query=new URLSearchParams({after:String(terrainRevision),epoch:terrainEpoch,view});const res=await fetch(apiBase+'/api/rpg/world-map?'+query,{cache:'no-store',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(5000)])});if(!res.ok)throw Error('Map unavailable');accept(await res.json());}catch{if(!dead)clearLive('Connection lost');}
+    if(!document.hidden)try{const b=terrain.bounds,view=[Math.floor((camera.x-w/2/scale)/64)*64-64,Math.floor((camera.z-h/2/scale)/64)*64-64,Math.ceil((camera.x+w/2/scale)/64)*64+64,Math.ceil((camera.z+h/2/scale)/64)*64+64].map((v,i)=>clamp(v,i%2?b.z:b.x,i%2?b.z+b.height:b.x+b.width)).join(',');if(view!==lastView){terrainRevision=0;lastView=view;}const query=new URLSearchParams({after:String(terrainRevision),epoch:terrainEpoch,view});const res=await fetch(apiBase+'/api/rpg/world-map?'+query,{cache:'no-store',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(5000)])});if(!res.ok)throw Error('Map unavailable');accept(await res.json());}catch{if(!dead&&(!lastSuccess||Date.now()-lastSuccess>=10000))clearLive('Connection lost');}
     if(!dead){void pumpTiles();timer=setTimeout(poll,250);}
   }
   on(select,'change',()=>{if(select.value)choose(select.value,true);else{camera.following=false;updateDetail();}});
