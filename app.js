@@ -1,4 +1,5 @@
 'use strict';
+import {achievementsView,syncAchievements} from './achievements.js';
 import {syncObservationUI} from './observation.js';
 import {mapSection,syncWorldMap} from './world-map.js';
 import { mountWardrobe } from './wardrobe.js?v=20261026-poollight';
@@ -24,7 +25,7 @@ let whisperDraft = '', suggestionDrafts = {}, toastTimer;
 let publicSession={};
 let archiveRows=[],archiveCursor=null,archiveKind='all',archiveBusy=false,archiveUser=null;
 const pendingActions=new Map();
-const pages = ['refugio','mundo','comunidade','codice'];
+const pages = ['refugio','mundo','comunidade','conquistas','codice'];
 const ownAgent = () => state?.agents?.find(a => a.id === state.currentUser?.agentId && a.ownerId === state.currentUser?.id);
 const wallet = () => state?.currentUser?.wallet || {};
 const demo = () => state?.mode !== 'live';
@@ -54,7 +55,7 @@ async function showSignIn(){
   publicSession={...session,servicesAvailable:online&&session.servicesAvailable!==false};
   if(state&&session.authenticated){header();return;}
   header();
-  $('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});
+  $('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});syncAchievements({apiBase:API_BASE});
   if(page==='mundo')document.querySelector('.watch-wrap')?.scrollIntoView();
 }
 async function refresh(force=false){
@@ -87,9 +88,9 @@ function header(){
 }
 function drawAvatars(){document.querySelectorAll('[data-avatar]').forEach(canvas=>{const a=state.agents.find(a=>a.id===canvas.dataset.avatar);if(a)window.drawVoxelAvatar(canvas,a.appearance);});}
 function render(){
-  if(!state){header();$('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});return;} if(!pages.includes(page))page='refugio';header();
-  document.title=`${({refugio:'Refuge',mundo:'World',comunidade:'Community',codice:'Rules'})[page]} · AI Underwatch`;
-  $('#main').innerHTML=({refugio:renderHome,mundo:renderWorld,comunidade:renderCommunity,codice:renderCodex})[page]();drawAvatars();updateTimers();syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});
+  if(!state){header();$('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});syncAchievements({apiBase:API_BASE});return;} if(!pages.includes(page))page='refugio';header();
+  document.title=`${({refugio:'Refuge',mundo:'World',comunidade:'Community',conquistas:'Achievements',codice:'Rules'})[page]} · AI Underwatch`;
+  $('#main').innerHTML=({refugio:renderHome,mundo:renderWorld,comunidade:renderCommunity,conquistas:achievementsView,codice:renderCodex})[page]();drawAvatars();updateTimers();syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});syncAchievements({apiBase:API_BASE});
   const journalSection=document.querySelector('.journal-section');if(journalSection){const button=document.createElement('button');button.className='text-link archive-button';button.dataset.action='history-archive';button.textContent='Journal archive ↗';journalSection.prepend(button);}
   document.querySelectorAll('.avatar-label').forEach(label=>{if(!label.textContent.trim())label.remove();});
 }
