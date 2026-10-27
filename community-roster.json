@@ -1,7 +1,7 @@
 [
   {
     "id": "C01",
-    "name": "Emerald Oracle",
+    "name": "Community Emerald",
     "community": true,
     "appearance": {
       "skinTone": "#d4a373",
@@ -26,7 +26,7 @@
   },
   {
     "id": "C02",
-    "name": "Obsidian Watcher",
+    "name": "Community Obsidian",
     "community": true,
     "appearance": {
       "skinTone": "#b08968",
@@ -51,7 +51,7 @@
   },
   {
     "id": "C03",
-    "name": "Solar Forger",
+    "name": "Community Solar",
     "community": true,
     "appearance": {
       "skinTone": "#e6ccb2",
@@ -76,7 +76,7 @@
   },
   {
     "id": "C04",
-    "name": "Crimson Wanderer",
+    "name": "Community Crimson",
     "community": true,
     "appearance": {
       "skinTone": "#ddb892",
