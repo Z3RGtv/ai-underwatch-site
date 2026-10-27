@@ -70,6 +70,11 @@ export function normalizeAppearance(input = {}, { strict = false } = {}) {
     if (strict && input[field] !== undefined && !isHex(input[field])) throw Error(`Invalid ${field}.`);
     out[field] = isHex(input[field]) ? input[field].toLowerCase() : fallback;
   }
+  // Optional authored outfit palettes. Ordinary player presets keep their existing colours.
+  for (const field of ['hoodColor', 'sleeveColor', 'trouserColor', 'accentColor']) {
+    if (strict && input[field] !== undefined && !isHex(input[field])) throw Error(`Invalid ${field}.`);
+    if (isHex(input[field])) out[field] = input[field].toLowerCase(); else delete out[field];
+  }
   delete out.armsPreset; delete out.legsPreset;
   for (const field of Object.keys(out)) if (out[field] === undefined) delete out[field];
   return out;
@@ -103,8 +108,9 @@ export function composeSkin(input = {}) {
       }
     }
   };
-  const leather = '#574333', darkLeather = '#392f2b', gold = '#bd9a57', seam = '#c1ac79';
-  const head = SKIN_PARTS.head.options.find(o => o.id === appearance.headPreset);
+  const leather = '#574333', darkLeather = '#392f2b', gold = appearance.accentColor ?? '#bd9a57', seam = appearance.accentColor ?? '#c1ac79';
+  const head = { ...SKIN_PARTS.head.options.find(o => o.id === appearance.headPreset) };
+  if (appearance.hoodColor) head.color = appearance.hoodColor;
   const torso = appearance.tunicColor;
 
   fill(SKIN_UV.head, appearance.skinTone, false);
@@ -182,7 +188,7 @@ export function composeSkin(input = {}) {
     rect(chest, 3, 3, 2, 1, gold); rect(chest, 3, 5, 2, 1, leather); rect(chest, 6, 6, 1, 2, '#e3d5a8');
   } else { for (let y = 3; y < 9; y += 2) { rect(chest, 2, y, 1, 1, gold); rect(chest, 5, y, 1, 1, gold); } }
   for (const name of ['rightArm', 'leftArm']) {
-    const armsPreset = appearance[SKIN_PARTS[name].field], arms = SKIN_PARTS[name].options.find(o => o.id === armsPreset).color;
+    const armsPreset = appearance[SKIN_PARTS[name].field], arms = appearance.sleeveColor ?? SKIN_PARTS[name].options.find(o => o.id === armsPreset).color;
     fill(SKIN_UV[name], arms);
     for (const side of ['front', 'back', 'right', 'left']) {
       const uv = SKIN_UV[name][side];
@@ -196,7 +202,7 @@ export function composeSkin(input = {}) {
     if (armsPreset !== 'gloves') fill({ bottom: SKIN_UV[name].bottom }, appearance.skinTone, false);
   }
   for (const name of ['rightLeg', 'leftLeg']) {
-    const legsPreset = appearance[SKIN_PARTS[name].field], legs = SKIN_PARTS[name].options.find(o => o.id === legsPreset).color;
+    const legsPreset = appearance[SKIN_PARTS[name].field], legs = appearance.trouserColor ?? SKIN_PARTS[name].options.find(o => o.id === legsPreset).color;
     fill(SKIN_UV[name], legs);
     for (const side of ['front', 'back', 'right', 'left']) {
       const uv = SKIN_UV[name][side], bootHeight = legsPreset === 'sailor' ? 6 : 4;
