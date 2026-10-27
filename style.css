@@ -29,3 +29,5 @@ input:not([type]){background:#111a15;border:1px solid #45503f;color:var(--ink);p
 .whisper-remove::after{content:none}
 
 .whisper-times{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 16px;text-transform:none;letter-spacing:0}.whisper-times time{color:var(--gold)}@media(max-width:600px){.history-card .timeline-meta{align-items:flex-start;flex-wrap:wrap}.whisper-times{justify-content:flex-start;width:100%}}
+
+.whisper-result{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;margin:12px 0;color:var(--muted);font-size:11px}.whisper-result .text-link{margin-left:auto}.whisper-failure{color:var(--muted);font-size:12px;margin:8px 0}
