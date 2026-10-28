@@ -19,7 +19,7 @@ export function mountSpawnPicker(root,{choices,selected='',locked=false,onChange
     for(const s of options){const available=!locked&&s.status==='available',chosen=selection===s.slotId;
       const node=svgNode('g',{transform:`translate(${s.x} ${s.z})`,class:`spawn-marker ${s.status}${chosen?' selected':''}`,role:'button',tabindex:available?0:-1,'aria-disabled':String(!available),'aria-pressed':String(chosen),'aria-label':`${s.slotId} · ${s.status}${s.name?' · '+s.name:''}`});
       node.append(svgNode('circle',{r:grouped?(chosen?14:12):(chosen?8:6)}),svgNode('circle',{r:2,class:'spawn-center'}));
-      const text=svgNode('text',{y:grouped?-20:-12,'text-anchor':'middle'});text.textContent=grouped?`${s.name} · ${s.players}/5`:s.slotId.slice(2);node.append(text);
+      const text=svgNode('text',{y:grouped?-20:-12,'text-anchor':'middle'});text.textContent=grouped?`${s.name} · ${s.players}/${s.playerCapacity??4}`:s.slotId.slice(2);node.append(text);
       const title=svgNode('title');title.textContent=s.name||s.slotId;node.append(title);
       const choose=()=>{if(!available)return;selection=s.slotId;draw();onChange(selection);};
       node.addEventListener('click',choose);node.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();choose();}});markers.append(node);
