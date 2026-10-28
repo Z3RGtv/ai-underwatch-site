@@ -1,0 +1,3 @@
+// Use current display names, without rewriting stored speech or guessing who heard it.
+export function conversationName(value,agents=[]){const raw=typeof value==='object'?value?.name??value?.id:value;const key=String(raw??'').toLowerCase();const agent=agents.find(a=>[a.id,a.name,a.customName,'AW_'+a.id,'Agent_'+a.id].some(n=>n&&String(n).toLowerCase()===key));return agent?.customName??agent?.name??String(raw??'Unknown');}
+export function conversationAudience(message,agents=[]){return {recorded:Array.isArray(message.recipients),names:[...new Set((Array.isArray(message.recipients)?message.recipients:[]).map(n=>conversationName(n,agents)))]};}

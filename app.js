@@ -1,3 +1,4 @@
+import {conversationName,conversationAudience} from './conversation-audience.js';
 import {itemTransfersMarkup} from './item-transfers.js';
 import {minecraftMeter,happinessMeter} from './hud-metrics.js?v=20261028-compact';
 import {getLanguage,translationQuery} from './i18n.js?v=20261028-server-pt';
@@ -118,7 +119,8 @@ function renderHome(){
 }
 function vital(label,value,max,cls){const known=value!==null&&value!==undefined&&Number.isFinite(Number(value));return `<div><div class="vital-head"><span>${label}</span><strong>${known?Math.round(Number(value)*10)/10:'—'} <span class="muted">/ ${max}</span></strong></div>${minecraftMeter(known?Number(value):null,cls,max)}</div>`;}
 
-function feed(messages){return messages.length?messages.map(m=>`<article class="feed-entry"><div class="feed-meta"><span class="direction">${m.direction==='spoken'?'Said':'Heard'}</span><strong>${esc(m.speaker||'Unknown')}</strong><time datetime="${esc(m.at)}">${time(m.at)}</time></div><p>“${esc(m.text)}”</p></article>`).join(''):empty('No conversations yet.');}
+function audienceLine(m){const a=conversationAudience(m,state?.agents);return `<footer class="conversation-audience">${a.recorded?(a.names.length?'<span>Heard by</span> '+a.names.map(esc).join(', '):'No one in range'):'Audience unrecorded'}</footer>`;}
+function feed(messages){return messages.length?messages.map(m=>`<article class="feed-entry"><div class="feed-meta"><span class="direction">${m.direction==='spoken'?'Said':'Heard'}</span><strong>${esc(conversationName(m.speaker,state?.agents))}</strong><time datetime="${esc(m.at)}">${time(m.at)}</time></div><p>“${esc(m.text)}”</p>${m.direction==='spoken'?audienceLine(m):''}</article>`).join(''):empty('No conversations yet.');}
 function renderJournal(a){
   if(journal==='trocas')return itemTransfersMarkup(a.itemTransfers,API_BASE);
   if(journal==='resumo')return `<div class="journal-grid"><section class="panel journal-panel"><div class="section-title"><h3>Recent intentions</h3></div><div class="timeline">${[...(a.recentIntentions||[])].sort((x,y)=>new Date(y.at)-new Date(x.at)).slice(0,3).map(i=>`<article class="timeline-item"><div class="timeline-meta"><span>${esc(i.source||'Autonomous')}</span><time datetime="${esc(i.at)}">${time(i.at)}</time></div><p>${esc(i.text)}</p></article>`).join('')||empty('No recent intentions.')}</div></section><section class="panel journal-panel"><div class="section-title"><h3>Recent conversations</h3><button class="text-link" data-journal="falas">View all</button></div>${feed((a.spokenAndHeard||[]).slice(0,2))}</section></div><div class="section-heading" style="margin-top:20px"><button class="text-link" data-action="extras">Interventions</button></div>`;
