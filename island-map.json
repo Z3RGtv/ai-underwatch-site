@@ -1,5 +1,5 @@
 {
-  "worldId": "island-009",
+  "worldId": "island-010",
   "title": "Four settlements",
   "image": "island-terrain.png",
   "bounds": {
@@ -10,7 +10,7 @@
   },
   "islandWidth": 640,
   "oceanBuffer": 192,
-  "terrainAsOf": "2026-10-28T08:09:21.154Z",
+  "terrainAsOf": "2026-10-28T08:20:52.137Z",
   "detailImage": "island-detail.png",
   "blocksPerPixel": 1,
   "tileSize": 64,
