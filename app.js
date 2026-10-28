@@ -1,4 +1,4 @@
-import {getLanguage} from './i18n.js';
+import {getLanguage} from './i18n.js?v=20261028-2';
 import {captureReadingState,restoreReadingState} from './reading-state.js';
 import {relativeTime} from './relative-time.js';
 'use strict';
