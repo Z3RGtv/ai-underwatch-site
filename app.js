@@ -1,3 +1,4 @@
+import {getLanguage} from './i18n.js';
 import {captureReadingState,restoreReadingState} from './reading-state.js';
 import {relativeTime} from './relative-time.js';
 'use strict';
@@ -44,7 +45,9 @@ async function request(path, body) {
     throw Object.assign(new Error('Player services are not open yet.'),{status:path==='/api/rpg/state'?401:503});
   }
   const csrf=document.cookie.split(';').map(s=>s.trim()).find(s=>s.startsWith('rpg_csrf='))?.slice(9);
-  const response = await fetch(API_BASE + path, {method:body?'POST':'GET',credentials:'same-origin',headers:body?{'Content-Type':'application/json',...(csrf?{'X-CSRF-Token':decodeURIComponent(csrf)}:{})}:{},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(12000)});
+  const locale=['pt','es'].includes(getLanguage())?getLanguage():'en';
+  const localizedPath=path+(path.includes('?')?'&':'?')+'lang='+locale;
+  const response = await fetch(API_BASE + localizedPath, {method:body?'POST':'GET',credentials:'same-origin',headers:body?{'Content-Type':'application/json',...(csrf?{'X-CSRF-Token':decodeURIComponent(csrf)}:{})}:{},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(12000)});
   let data;try {data=await response.json();}catch {throw new Error('Unexpected response. Try again.');}
   if(!response.ok)throw Object.assign(new Error(data.error || 'Could not complete the request.'),{status:response.status});
   return data;
