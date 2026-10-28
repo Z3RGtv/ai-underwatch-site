@@ -22,22 +22,7 @@ async function setLanguage(value,prepare=false){language=resolveLanguage(value);
  button.textContent=catalog['language.enable']??'Enable local translation';control.querySelector('.language-original').lastChild.textContent=' '+(catalog['language.original']??'Show original messages');scan();void prepareTranslation(prepare);
 }
 async function model(source,target,download=false){const key=source+':'+target;if(translators.has(key))return timeout(translators.get(key));if(!('Translator'in self))return null;const options={sourceLanguage:source,targetLanguage:target};const available=await Translator.availability(options);if(available==='unavailable'||!download&&available!=='available')return null;const promise=Translator.create({...options,monitor(m){m.addEventListener('downloadprogress',e=>say('Downloading language pack · '+Math.round(e.loaded*100)+'%'));}});translators.set(key,promise);try{return await timeout(promise);}catch{translators.delete(key);return null;}}
-async function prepareTranslation(download=false){
- if(preparing){await preparing;return prepareTranslation(download);}
- if(!('Translator'in self)){say(language==='pt'?'Este navegador não suporta tradução local das mensagens. Usa a opção de tradução do navegador.':'This browser does not support local message translation. Use its Translate page option.');return;}
- const target=language,version=generation;
- preparing=(async()=>{button.disabled=true;try{
-  if('LanguageDetector'in self&&!detector){const available=await LanguageDetector.availability();if(available==='available'||download&&available!=='unavailable')detector=await timeout(LanguageDetector.create());}
-  const sources=[...new Set([target==='en'?'pt':'en',...pendingSources])].filter(s=>s!==target);
-  const models=await Promise.all(sources.map(source=>model(source,target,download)));
-  if(version!==generation||target!==language)return;
-  enabled=true;store(AUTO,'1');
-  if(detector&&models.every(Boolean)){pendingSources.clear();generation++;queue=[];say(language==='pt'?'Mensagens traduzidas automaticamente neste dispositivo.':'Messages translate automatically on this device.');}
-  else say(language==='pt'?'Ativa a tradução uma vez para descarregar os pacotes gratuitos. Depois, as mensagens são traduzidas automaticamente.':'Enable translation once to download the free language packs. Messages then translate automatically.');
-  scan();
- }catch{say(language==='pt'?'Não foi possível preparar a tradução. Mantemos as mensagens originais; podes tentar novamente.':'Translation could not be prepared. Original messages are preserved; you can retry.');}finally{button.disabled=false;preparing=null;}})();return preparing;
-}
-button.addEventListener('click',()=>void prepareTranslation(true));
+async function prepareTranslation(){button.hidden=true;say(language==='pt'?'Tradução automática para português no servidor, sem serviços pagos.':'Automatic message translation is currently available in Portuguese only.');}
 select.addEventListener('change',()=>{void setLanguage(select.value,true);});original.addEventListener('change',()=>{generation++;queue=[];for(const node of tracked){const r=records.get(node);if(r?.dynamic&&node.isConnected&&node.data===r.last){node.data=r.original;r.last=r.original;}}scan();});
 function known(text,element){const key=element.closest('[data-i18n]')?.dataset.i18n||index.get(normalizeText(text))||index.get(normalizeText(text).toLowerCase())||index.get(normalizeText(text).replace(/\.$/,'').toLowerCase());if(!key)return null;let result=catalog[key]??english[key]??text;if(text.endsWith('.')&&!result.endsWith('.'))result+='.';if(text===text.toUpperCase())result=result.toUpperCase();return result;}
 function scan(){
@@ -49,7 +34,7 @@ function scan(){
   const source=record.original,text=normalizeText(source);if(!/[\p{L}]/u.test(text)||text.length>4000)continue;
   const local=record.dynamic?null:messageAge(text,language)??known(text,element);
   if(local!==null){apply(node,record,source.replace(source.trim(),local));continue;}
-  if(!enabled||record.dynamic&&original.checked)continue;
+  if(!enabled||record.dynamic)continue;
   if(!record.dynamic&&language==='en')continue;
   const key=language+':'+text;if(cache.has(key)){apply(node,record,cache.get(key));continue;}
   if(queue.length<250&&!record.queued&&record.attempted!==generation){record.queued=true;record.attempted=generation;queue.push({node,record,text,language,version:generation});}
@@ -77,3 +62,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-action=logout]'
 export function t(key,variables={}){let value=catalog[key]??english[key]??key;for(const [name,text]of Object.entries(variables))value=value.replaceAll('{'+name+'}',String(text));return value;}
 
 document.addEventListener('pointerdown',e=>{if(control.open&&!control.contains(e.target))control.open=false;});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&control.open){control.open=false;control.querySelector('summary').focus();}});
+
+let languageVisitor='';
+try{const day=new Date().toISOString().slice(0,10),old=JSON.parse(localStorage.getItem('underwatch.languageVisitor')||'null');languageVisitor=old?.day===day?old.id:crypto.randomUUID().replaceAll('-','');localStorage.setItem('underwatch.languageVisitor',JSON.stringify({day,id:languageVisitor}));}catch{}
+export function translationQuery(){return 'uiLang='+encodeURIComponent(language)+(document.visibilityState==='visible'&&languageVisitor?'&visitor='+languageVisitor:'')+(language==='pt'&&!original.checked?'&translate=pt':'');}

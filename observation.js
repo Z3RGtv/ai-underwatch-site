@@ -1,3 +1,4 @@
+import {translationQuery} from './i18n.js?v=20261028-server-pt';
 import {renderWhisperHistory} from './whisper-history.js';
 import {captureReadingState,restoreReadingState} from './reading-state.js';
 import {itemTransfersMarkup} from './item-transfers.js';
@@ -45,7 +46,7 @@ function renderRail(){
   const dispatch=rail.querySelector('.community-dispatch');dispatch.innerHTML='<span>Next community whisper</span><strong data-dispatch-clock>—</strong>';updateDispatch();
 }
 function updateDispatch(){const el=$('[data-dispatch-clock]');if(!el)return;if(!snapshot?.activeCount||!snapshot.nextDispatchAt){el.textContent='Waiting';return;}const s=Math.max(0,Math.ceil((snapshot.nextDispatchAt-Date.now())/1000));el.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
-async function poll(){if(!document.hidden&&playerServices!=='unavailable')try{const r=await fetch(apiBase+'/api/rpg/observation',{cache:'no-store',signal:AbortSignal.timeout(6000)});if(!r.ok)throw Error('Offline');snapshot=await r.json();drawWorldRoster();drawCards();renderRail();}catch{if(snapshot){snapshot={...snapshot,activeCount:0};renderRail();}}
+async function poll(){if(!document.hidden&&playerServices!=='unavailable')try{const r=await fetch(apiBase+'/api/rpg/observation?'+translationQuery(),{cache:'no-store',signal:AbortSignal.timeout(6000)});if(!r.ok)throw Error('Offline');snapshot=await r.json();drawWorldRoster();drawCards();renderRail();}catch{if(snapshot){snapshot={...snapshot,activeCount:0};renderRail();}}
   if(selected&&!document.hidden&&Date.now()>=nextProfile)void loadProfile();setTimeout(poll,1500);
 }
 function inspectorRoot(){if(inlineRoot?.isConnected)return inlineRoot;return $('#observedCharacterDialog .observed-body');}
@@ -57,7 +58,7 @@ function openProfile(id){if(!/^(?:C0[1-4]|A\d{2,8})$/.test(id))return;selected=i
 }
 async function loadProfile(){if(loading||!selected)return;const id=selected,version=generation;loading=true;nextProfile=Date.now()+3000;
   try{if(playerServices==='unavailable'){const a=catalog.find(a=>a.id===id);if(!a)throw Error('Unavailable');profile={...a,stats:{},inventory:[],intentions:[],speech:[],routines:[],whispers:[]};}
-    else{const r=await fetch(apiBase+'/api/rpg/observation/agents/'+id,{cache:'no-store',signal:AbortSignal.timeout(6000)});if(!r.ok)throw Error('Unavailable');const data=await r.json();if(id!==selected||version!==generation)return;profile=data;}renderProfile();
+    else{const r=await fetch(apiBase+'/api/rpg/observation/agents/'+id+'?'+translationQuery(),{cache:'no-store',signal:AbortSignal.timeout(6000)});if(!r.ok)throw Error('Unavailable');const data=await r.json();if(id!==selected||version!==generation)return;profile=data;}renderProfile();
   }catch{if(id===selected){profile={id,name:catalog.find(a=>a.id===id)?.name??'Character',status:'offline',stats:{},inventory:[],intentions:[],speech:[],routines:[],whispers:[]};renderProfile();}}finally{loading=false;if(selected&&selected!==id)void loadProfile();}
 }
 function itemSlot(item,chosen=false){return `<span class="observed-item${chosen?' chosen':''}">${item&&/^[a-z0-9_]{1,80}$/.test(item.item)?`<img src="${safe(apiBase)}/item-icons/${item.item}.svg" alt="${safe(pretty(item.item))}" title="${safe(pretty(item.item))}"><b>${number(item.count)>1?number(item.count):''}</b>`:''}</span>`;}

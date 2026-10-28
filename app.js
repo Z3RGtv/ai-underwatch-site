@@ -1,15 +1,15 @@
 import {itemTransfersMarkup} from './item-transfers.js';
 import {minecraftMeter,happinessMeter} from './hud-metrics.js?v=20261028-compact';
-import {getLanguage} from './i18n.js?v=20261028-auto-messages';
+import {getLanguage,translationQuery} from './i18n.js?v=20261028-server-pt';
 import {captureReadingState,restoreReadingState} from './reading-state.js';
 import {relativeTime} from './relative-time.js';
 'use strict';
 import {achievementsView,syncAchievements} from './achievements.js?v=20261028-collections';
-import {syncObservationUI} from './observation.js?v=20261028-community-history';
+import {syncObservationUI} from './observation.js?v=20261028-server-pt';
 import {mapSection,syncWorldMap} from './world-map.js';
 import { mountWardrobe } from './wardrobe.js?v=20261026-poollight';
 import {mountSpawnPicker} from './spawn-picker.js?v=20261028-four-players';
-import { publicView,loadTwitchPlayer,privacyView } from './public-view.js?v=20261028-community-history';
+import { publicView,loadTwitchPlayer,privacyView } from './public-view.js?v=20261028-server-pt';
 import * as deployment from './deployment.js';
 const {playerServices}=deployment;
 let characterWardrobe = null;
@@ -48,7 +48,7 @@ async function request(path, body) {
   }
   const csrf=document.cookie.split(';').map(s=>s.trim()).find(s=>s.startsWith('rpg_csrf='))?.slice(9);
   const locale=['pt','es'].includes(getLanguage())?getLanguage():'en';
-  const localizedPath=path+(path.includes('?')?'&':'?')+'lang='+locale;
+  const localizedPath=path+(path.includes('?')?'&':'?')+'lang='+locale+'&'+translationQuery();
   const response = await fetch(API_BASE + localizedPath, {method:body?'POST':'GET',credentials:'same-origin',headers:body?{'Content-Type':'application/json',...(csrf?{'X-CSRF-Token':decodeURIComponent(csrf)}:{})}:{},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(12000)});
   let data;try {data=await response.json();}catch {throw new Error('Unexpected response. Try again.');}
   if(!response.ok)throw Object.assign(new Error(data.error || 'Could not complete the request.'),{status:response.status});
