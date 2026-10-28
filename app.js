@@ -1,14 +1,14 @@
-import {minecraftMeter,happinessMeter} from './hud-metrics.js';
+import {minecraftMeter,happinessMeter} from './hud-metrics.js?v=20261028-compact';
 import {getLanguage} from './i18n.js?v=20261028-2';
 import {captureReadingState,restoreReadingState} from './reading-state.js';
 import {relativeTime} from './relative-time.js';
 'use strict';
 import {achievementsView,syncAchievements} from './achievements.js?v=20261028-collections';
-import {syncObservationUI} from './observation.js?v=20261028-minecraft-vitals';
+import {syncObservationUI} from './observation.js?v=20261028-compact-hud';
 import {mapSection,syncWorldMap} from './world-map.js';
 import { mountWardrobe } from './wardrobe.js?v=20261026-poollight';
 import {mountSpawnPicker} from './spawn-picker.js?v=20261028-four-players';
-import { publicView,loadTwitchPlayer,privacyView } from './public-view.js?v=20261028-minecraft-vitals';
+import { publicView,loadTwitchPlayer,privacyView } from './public-view.js?v=20261028-compact-hud';
 import * as deployment from './deployment.js';
 const {playerServices}=deployment;
 let characterWardrobe = null;

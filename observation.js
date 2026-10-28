@@ -1,4 +1,4 @@
-import {minecraftMeter,happinessMeter} from './hud-metrics.js';
+import {minecraftMeter,happinessMeter} from './hud-metrics.js?v=20261028-compact';
 import {relativeTime} from './relative-time.js';
 import * as deployment from './deployment.js';
 const {playerServices}=deployment;
