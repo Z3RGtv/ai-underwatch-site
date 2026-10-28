@@ -3,7 +3,7 @@ import {achievementsView,syncAchievements} from './achievements.js';
 import {syncObservationUI} from './observation.js';
 import {mapSection,syncWorldMap} from './world-map.js';
 import { mountWardrobe } from './wardrobe.js?v=20261026-poollight';
-import {mountSpawnPicker} from './spawn-picker.js?v=20261026-poollight';
+import {mountSpawnPicker} from './spawn-picker.js?v=20261028-groups';
 import { publicView,loadTwitchPlayer,privacyView } from './public-view.js?v=20261027-achievements';
 import * as deployment from './deployment.js';
 const {playerServices}=deployment;
@@ -163,7 +163,7 @@ function openCustomizer(){
   $('#dialog').classList.add('wardrobe-dialog');
   characterWardrobe=mountWardrobe($('#characterWardrobe'),{appearance:a?.appearance||{},locked});
   const picker=document.createElement('section');$('#customizerForm .wardrobe-save-row').before(picker);
-  characterSpawn=mountSpawnPicker(picker,{choices:state.spawnChoices,selected:a?.initialSpawn?.slotId||'',locked:saved,onChange:id=>{$('#customizerForm button[type="submit"]').disabled=!online||locked||!id;}});
+  characterSpawn=mountSpawnPicker(picker,{choices:state.spawnChoices,selected:(state.spawnChoices?.selectionMode==='group'?a?.initialSpawn?.groupId:a?.initialSpawn?.slotId)||'',locked:saved,onChange:id=>{$('#customizerForm button[type="submit"]').disabled=!online||locked||!id;}});
   if(!saved){$('#customizerForm button[type="submit"]').disabled=true;spawnPoll=setInterval(async()=>{if(document.hidden||pending||refreshing)return;try{const data=await request('/api/rpg/state');if(!characterSpawn)return;acceptState(data);}catch{}},5000);}
 }
 function appearanceFromForm(){return characterWardrobe?.getAppearance()||{};}
@@ -238,7 +238,7 @@ document.addEventListener('submit',async e=>{
   const a=ownAgent(),d=Object.fromEntries(new FormData(f));
   if(f.id==='whisperForm'&&await mutate('/api/rpg/whisper',{agentId:a?.id,prompt:whisperDraft.trim(),useExtraCredit:false},'Whisper queued.')){whisperDraft='';render();}
   if(f.id==='suggestionForm'&&await mutate('/api/rpg/community/suggest',{agentId:communityId,text:suggestionDrafts[communityId]?.trim()},'Suggestion added.')){suggestionDrafts[communityId]='';render();}
-  if(f.id==='customizerForm'){const appearance=appearanceFromForm(),spawnSlotId=characterSpawn?.getSelected();if(!a&&!spawnSlotId)return toast('Choose an available spawn on the map.',true);if(await mutate('/api/rpg/customize',{customName:d.customName.trim(),modelKey:d.modelKey,appearance,spawnSlotId},'Appearance saved and locked.'))closeDialog();else if(!a)try{acceptState(await request('/api/rpg/state'));}catch{}}
+  if(f.id==='customizerForm'){const appearance=appearanceFromForm(),spawnSlotId=characterSpawn?.getSelected();if(!a&&!spawnSlotId)return toast('Choose an available spawn on the map.',true);if(await mutate('/api/rpg/customize',{customName:d.customName.trim(),modelKey:d.modelKey,appearance,...(state.spawnChoices?.selectionMode==='group'?{spawnGroupId:spawnSlotId}:{spawnSlotId})},'Appearance saved and locked.'))closeDialog();else if(!a)try{acceptState(await request('/api/rpg/state'));}catch{}}
   if(f.id==='routineForm'){const steps=d.steps==='say'?'say:'+d.speech:d.steps;if(await mutate('/api/rpg/routine',{agentId:a?.id,routineId:f.dataset.id,action:'edit',name:d.name,trigger:d.trigger,steps},demo()?'Routine saved.':'Routine change queued.'))closeDialog();}
   if(f.id==='extraForm'){
     const type=f.dataset.type,camera=['camera','switch','spotlight'].includes(type);f.dataset.requestId??=crypto.randomUUID();

@@ -8,27 +8,29 @@ export function mountSpawnPicker(root,{choices,selected='',locked=false,onChange
   const image=svgNode('image'),markers=svgNode('g');svg.append(image,markers);
   function draw(){
     if(!data?.slots?.length){status.textContent='Spawn map unavailable. Try again shortly.';onChange('');return;}
+    const grouped=data.selectionMode==='group',options=grouped?data.groups.map(g=>({...g,slotId:g.id,name:g.name})):data.slots;
+    root.querySelector('h3').textContent=grouped?'Choose your group.':'Choose your starting place.';
     const xs=data.slots.map(s=>s.x),zs=data.slots.map(s=>s.z),cx=(Math.min(...xs)+Math.max(...xs))/2,cz=(Math.min(...zs)+Math.max(...zs))/2;
-    const w=Math.max(320,Math.max(...xs)-Math.min(...xs)+120)/zoom,h=w*.72;
+    const w=Math.max(320,Math.max(...xs)-Math.min(...xs)+120,(Math.max(...zs)-Math.min(...zs)+120)/.72)/zoom,h=w*.72;
     svg.setAttribute('viewBox',`${cx-w/2} ${cz-h/2} ${w} ${h}`);
     if(terrain){const b=terrain.bounds;image.setAttribute('href',terrain.detailImage||terrain.image);for(const [k,v]of Object.entries({x:b.x,y:b.z,width:b.width,height:b.height}))image.setAttribute(k,String(v));}
-    if(!locked&&selection&&!data.slots.some(s=>s.slotId===selection&&s.status==='available')){selection='';onChange('');}
+    if(!locked&&selection&&!options.some(s=>s.slotId===selection&&s.status==='available')){selection='';onChange('');}
     markers.replaceChildren();
-    for(const s of data.slots){const available=!locked&&s.status==='available',chosen=selection===s.slotId;
+    for(const s of options){const available=!locked&&s.status==='available',chosen=selection===s.slotId;
       const node=svgNode('g',{transform:`translate(${s.x} ${s.z})`,class:`spawn-marker ${s.status}${chosen?' selected':''}`,role:'button',tabindex:available?0:-1,'aria-disabled':String(!available),'aria-pressed':String(chosen),'aria-label':`${s.slotId} · ${s.status}${s.name?' · '+s.name:''}`});
-      node.append(svgNode('circle',{r:chosen?8:6}),svgNode('circle',{r:2,class:'spawn-center'}));
-      const text=svgNode('text',{y:-12,'text-anchor':'middle'});text.textContent=s.slotId.slice(2);node.append(text);
+      node.append(svgNode('circle',{r:grouped?(chosen?14:12):(chosen?8:6)}),svgNode('circle',{r:2,class:'spawn-center'}));
+      const text=svgNode('text',{y:grouped?-20:-12,'text-anchor':'middle'});text.textContent=grouped?`${s.name} · ${s.players}/5`:s.slotId.slice(2);node.append(text);
       const title=svgNode('title');title.textContent=s.name||s.slotId;node.append(title);
       const choose=()=>{if(!available)return;selection=s.slotId;draw();onChange(selection);};
       node.addEventListener('click',choose);node.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();choose();}});markers.append(node);
     }
     const places=data.playerPlacesAvailable??16,free=data.slots.filter(s=>s.status==='available'||s.status==='community-pool').length;
-    count.textContent=places>0?`${free} free spots · ${places} player places`:`${free} spots · Community pool`;
+    count.textContent=grouped?`${places} player places · 4 community AIs`:places>0?`${free} free spots · ${places} player places`:`${free} spots · Community pool`;
     root.querySelector('.spawn-legend').innerHTML=places>0?'<span class="available">Available</span><span class="occupied">Occupied</span>':'<span class="occupied">Occupied</span><span class="community-pool">Community pool</span>';
-    status.textContent=selection?`${selection} · ${locked?'Initial spawn saved':'Selected'}`:'Select a free marker';
+    status.textContent=grouped?(selection?`${options.find(g=>g.slotId===selection)?.name??selection} · ${locked?'Saved':'Selected'}`:'Choose a group · Your spot is assigned automatically'):selection?`${selection} · ${locked?'Initial spawn saved':'Selected'}`:'Select a free marker';
     if(!locked)onChange(selection);
   }
   root.addEventListener('click',e=>{const z=e.target.closest('[data-zoom]')?.dataset.zoom;if(!z)return;zoom=z==='fit'?1:Math.max(.75,Math.min(2.5,zoom*(z==='in'?1.25:.8)));draw();});
-  fetch('island-map.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(t=>{if(dead)return;terrain=t;draw();}).catch(()=>{if(!dead)status.textContent='Map image unavailable. Choose a numbered marker.';});
+  fetch('island-map.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(t=>{if(dead)return;terrain=t;draw();}).catch(()=>{if(!dead)status.textContent='Map image unavailable. Choose an available marker.';});
   draw();return {getSelected:()=>selection,update(next){if(dead)return;data=next;draw();},destroy(){dead=true;}};
 }
