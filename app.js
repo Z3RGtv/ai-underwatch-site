@@ -2,11 +2,11 @@ import {captureReadingState,restoreReadingState} from './reading-state.js';
 import {relativeTime} from './relative-time.js';
 'use strict';
 import {achievementsView,syncAchievements} from './achievements.js?v=20261028-collections';
-import {syncObservationUI} from './observation.js?v=20261028-relative-times';
+import {syncObservationUI} from './observation.js?v=20261028-world-heads';
 import {mapSection,syncWorldMap} from './world-map.js';
 import { mountWardrobe } from './wardrobe.js?v=20261026-poollight';
 import {mountSpawnPicker} from './spawn-picker.js?v=20261028-four-players';
-import { publicView,loadTwitchPlayer,privacyView } from './public-view.js?v=20261027-achievements';
+import { publicView,loadTwitchPlayer,privacyView } from './public-view.js?v=20261028-world-heads';
 import * as deployment from './deployment.js';
 const {playerServices}=deployment;
 let characterWardrobe = null;
@@ -58,7 +58,7 @@ async function showSignIn(){
   if(state&&session.authenticated){header();return;}
   header();
   $('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});syncAchievements({apiBase:API_BASE});
-  if(page==='mundo')document.querySelector('.watch-wrap')?.scrollIntoView();
+  ensureWorldStream();
 }
 async function refresh(force=false){
   if(refreshing || pending || (!force && (document.hidden || $('#dialog').open || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName))))return;
@@ -88,12 +88,16 @@ function header(){
   $('#accountInitial').textContent=(state?.currentUser?.displayName || '?').slice(0,1).toUpperCase();
   document.querySelectorAll('[data-page]').forEach(el=>{if(el.dataset.page===page)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');});
 }
+function ensureWorldStream(){if(page==='mundo'&&$('.watch-screen')&&!$('.watch-screen iframe'))loadTwitchPlayer({autoplay:true,muted:true});}
 function drawAvatars(){document.querySelectorAll('[data-avatar]').forEach(canvas=>{const a=state.agents.find(a=>a.id===canvas.dataset.avatar);if(a)window.drawVoxelAvatar(canvas,a.appearance);});}
 function render(){
-  if(!state){header();$('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});syncAchievements({apiBase:API_BASE});return;} if(!pages.includes(page))page='refugio';header();
+  if(!state){header();$('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});syncAchievements({apiBase:API_BASE});ensureWorldStream();return;} if(!pages.includes(page))page='refugio';header();
   document.title=`${({refugio:'Refuge',mundo:'World',comunidade:'Community',conquistas:'Achievements',codice:'Rules'})[page]} · AI Underwatch`;
+  const livePlayer=$('#main .watch-screen iframe');
   const reading=captureReadingState($('#main'));
   $('#main').innerHTML=({refugio:renderHome,mundo:renderWorld,comunidade:renderCommunity,conquistas:achievementsView,codice:renderCodex})[page]();drawAvatars();updateTimers();syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});syncAchievements({apiBase:API_BASE});
+  if(livePlayer&&$('#main .watch-screen'))$('#main .watch-screen').replaceChildren(livePlayer);
+  ensureWorldStream();
   restoreReadingState($('#main'),reading);
   const journalSection=document.querySelector('.journal-section');if(journalSection){const button=document.createElement('button');button.className='text-link archive-button';button.dataset.action='history-archive';button.textContent='Journal archive ↗';journalSection.prepend(button);}
   document.querySelectorAll('.avatar-label').forEach(label=>{if(!label.textContent.trim())label.remove();});
@@ -124,7 +128,7 @@ function renderCommunity(){
 function renderWorld(){
   const slots=Array.isArray(state.cameras?.slots)?state.cameras.slots:Object.values(state.cameras?.slots||{});
   const order=['Cam_Center','Cam_L1','Cam_R1','Cam_L2','Cam_R2','Cam_World'];
-  return `<div class="page-wrap"><div class="page-intro"><div><h1>World.</h1></div><span class="badge sage">${state.agents.length} characters</span></div>${mapSection()}<div class="section-title"><h3>Cameras</h3><button class="text-link" data-action="camera-info">Camera rules</button></div><div class="camera-grid">${order.map((id,i)=>{const slot=slots.find(s=>s.id===id);const a=state.agents.find(a=>a.id===(slot?.targetAgentId||slot?.agent?.id));return `<article class="camera-tile ${id==='Cam_Center'?'center':''}"><span class="camera-slot">${id==='Cam_Center'?'Center':id==='Cam_R2'?'Community':({Cam_L1:'Side 1',Cam_L2:'Side 2',Cam_R1:'Side 3',Cam_World:'World'})[id]}</span>${a?avatar(a):''}<div class="camera-copy"><h3>${esc(a?.customName||'Unassigned')}</h3>${slot?.lockRemainingSeconds>0?`<p>Reserved · ${clock(slot.lockRemainingSeconds)}</p>`:''}</div></article>`;}).join('')}</div><p class="camera-label">Camera preview · no live video</p><div class="section-title"><h3>Inhabitants</h3><span class="eyebrow">${state.agents.length} / ${num(state.season?.maxAgents)||20} SLOTS</span></div><div class="roster">${state.agents.map(a=>`<button type="button" class="roster-item" data-inspect-agent="${esc(a.id)}" aria-label="View ${esc(a.customName)}">${avatar(a)}<div><h3>${esc(a.customName)}</h3><p>${a.isCommunity?'Community':a.id===state.currentUser?.agentId?'Your character':'Player'}</p></div><span class="roster-open" aria-hidden="true">↗</span></button>`).join('')}</div></div>`;
+  return `<div class="page-wrap"><div class="page-intro"><div><h1>World.</h1></div><span class="badge sage">${state.agents.length} characters</span></div><nav class="inhabitant-strip" data-world-roster aria-label="Inhabitants"></nav>${mapSection()}<div class="section-heading world-stream-heading"><h2>Live on Twitch.</h2><a class="text-link" href="https://www.twitch.tv/aiunderwatch" target="_blank" rel="noopener noreferrer">Open Twitch ↗</a></div><section class="watch-screen world-stream" aria-label="AI Underwatch Twitch stream"><div class="watch-placeholder"><span class="eyebrow">AI UNDERWATCH · TWITCH</span><button class="btn secondary" data-action="load-stream">Watch live ▷</button></div></section><div class="section-title"><h3>Cameras</h3><button class="text-link" data-action="camera-info">Camera rules</button></div><div class="camera-grid">${order.map((id,i)=>{const slot=slots.find(s=>s.id===id);const a=state.agents.find(a=>a.id===(slot?.targetAgentId||slot?.agent?.id));return `<article class="camera-tile ${id==='Cam_Center'?'center':''}"><span class="camera-slot">${id==='Cam_Center'?'Center':id==='Cam_R2'?'Community':({Cam_L1:'Side 1',Cam_L2:'Side 2',Cam_R1:'Side 3',Cam_World:'World'})[id]}</span>${a?avatar(a):''}<div class="camera-copy"><h3>${esc(a?.customName||'Unassigned')}</h3>${slot?.lockRemainingSeconds>0?`<p>Reserved · ${clock(slot.lockRemainingSeconds)}</p>`:''}</div></article>`;}).join('')}</div><p class="camera-label">Camera preview · no live video</p></div>`;
 }
 function renderCodex(){const p=state.pricing||{};return `<div class="page-wrap"><div class="page-intro"><h1>Rules.</h1></div><div class="codex-grid"><article class="panel codex-card"><h2>Character access</h2><ul><li>Own subscription or ${fmt(p.nonSubAgentPassPoints)} Channel Points.</li><li>Gift subs do not unlock characters.</li><li>${num(state.season?.maxAgents)||20} characters per season; full seasons use a waitlist.</li><li>First appearance included. Further changes require Channel Points.</li></ul></article><article class="panel codex-card"><h2>Whispers</h2><table class="tier-table"><thead><tr><th>Tier</th><th>Included</th><th>Extra</th></tr></thead><tbody>${[1,2,3].map(t=>`<tr><td>${t}</td><td>Every ${num(state.tiers?.[t]?.whisperCooldownSeconds||1800)/60} min</td><td>${fmt(p.extraWhisperBits)} Bits</td></tr>`).join('')}</tbody></table></article><article class="panel codex-card"><h2>Community voting</h2><ul>${state.communityVoting?.freeAccess?.enabled?'<li>One free suggestion every 2 hours.</li><li>Five vote tokens every 2 hours, up to 25.</li>':`<li>Suggest · ${fmt(p.communitySuggestionPoints)} Channel Points.</li><li>Vote · ${fmt(p.communityVotePoints)} Channel Points.</li>`}<li>Up to ${fmt(state.communityVoting?.maxVotesPerUser||5)} votes per person, per suggestion.</li><li>Each agent receives its top suggestion every ${num(p.communityDispatchIntervalSeconds||1800)/60} min.</li></ul><a class="text-link" href="#comunidade">Community</a></article><article class="panel codex-card"><h2>Tokens</h2><p>Redeem on Twitch. Spend from your wallet.</p><button class="text-link" data-action="wallet">Wallet & prices</button></article></div></div>`;}
 function renderWhisperHistory(w,canRemove=false){

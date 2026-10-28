@@ -29,3 +29,5 @@ window.drawVoxelAvatar = function(canvas, appearance = {}) {
     ctx.drawImage(texture, sx, sy, sw, sh, 0, 0, sw, sh); ctx.restore();
   }
 };
+
+window.drawVoxelHead=function(canvas,appearance={}){if(!canvas)return;const ctx=canvas.getContext('2d'),skin=skinCanvas(appearance);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.imageSmoothingEnabled=false;ctx.drawImage(skin,8,8,8,8,0,0,canvas.width,canvas.height);ctx.drawImage(skin,40,8,8,8,0,0,canvas.width,canvas.height);};
