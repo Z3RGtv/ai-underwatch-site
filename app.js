@@ -93,6 +93,7 @@ function drawAvatars(){document.querySelectorAll('[data-avatar]').forEach(canvas
 function render(){
   if(!state){header();$('#main').innerHTML=publicView(page,publicSession);syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});syncAchievements({apiBase:API_BASE});ensureWorldStream();return;} if(!pages.includes(page))page='refugio';header();
   document.title=`${({refugio:'Refuge',mundo:'World',comunidade:'Community',conquistas:'Achievements',codice:'Rules'})[page]} · AI Underwatch`;
+  if(page==='mundo'&&$('#main [data-world-roster]')&&$('#main .watch-screen iframe')){syncObservationUI({apiBase:API_BASE});return;}
   const livePlayer=$('#main .watch-screen iframe');
   const reading=captureReadingState($('#main'));
   $('#main').innerHTML=({refugio:renderHome,mundo:renderWorld,comunidade:renderCommunity,conquistas:achievementsView,codice:renderCodex})[page]();drawAvatars();updateTimers();syncWorldMap({apiBase:API_BASE});syncObservationUI({apiBase:API_BASE});syncAchievements({apiBase:API_BASE});
