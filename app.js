@@ -1,6 +1,6 @@
 import {itemTransfersMarkup} from './item-transfers.js';
 import {minecraftMeter,happinessMeter} from './hud-metrics.js?v=20261028-compact';
-import {getLanguage} from './i18n.js?v=20261028-2';
+import {getLanguage} from './i18n.js?v=20261028-flags';
 import {captureReadingState,restoreReadingState} from './reading-state.js';
 import {relativeTime} from './relative-time.js';
 'use strict';
