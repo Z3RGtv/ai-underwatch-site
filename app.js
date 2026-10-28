@@ -1,9 +1,9 @@
 'use strict';
-import {achievementsView,syncAchievements} from './achievements.js';
+import {achievementsView,syncAchievements} from './achievements.js?v=20261028-collections';
 import {syncObservationUI} from './observation.js';
 import {mapSection,syncWorldMap} from './world-map.js';
 import { mountWardrobe } from './wardrobe.js?v=20261026-poollight';
-import {mountSpawnPicker} from './spawn-picker.js?v=20261028-groups';
+import {mountSpawnPicker} from './spawn-picker.js?v=20261028-four-players';
 import { publicView,loadTwitchPlayer,privacyView } from './public-view.js?v=20261027-achievements';
 import * as deployment from './deployment.js';
 const {playerServices}=deployment;
