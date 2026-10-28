@@ -8,7 +8,7 @@ import {syncObservationUI} from './observation.js?v=20261028-minecraft-vitals';
 import {mapSection,syncWorldMap} from './world-map.js';
 import { mountWardrobe } from './wardrobe.js?v=20261026-poollight';
 import {mountSpawnPicker} from './spawn-picker.js?v=20261028-four-players';
-import { publicView,loadTwitchPlayer,privacyView } from './public-view.js?v=20261028-world-heads';
+import { publicView,loadTwitchPlayer,privacyView } from './public-view.js?v=20261028-minecraft-vitals';
 import * as deployment from './deployment.js';
 const {playerServices}=deployment;
 let characterWardrobe = null;
