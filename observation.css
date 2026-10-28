@@ -23,3 +23,5 @@
   #siteShell:has(main>.hero)>.world-rail{grid-column:2;grid-row:3;margin-right:3vw;z-index:1}
 }
 @media(max-width:760px){.masthead{gap:0}.masthead .brand{gap:6px}.masthead .brand>span{font-size:15px}.masthead .account-nav{gap:6px}}
+
+.observed-navigation{display:flex;align-items:center;gap:8px;flex-shrink:0}.observed-navigation button{min-width:38px;min-height:38px}.observed-navigation button:disabled{opacity:.35}
