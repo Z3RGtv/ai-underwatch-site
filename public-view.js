@@ -1,5 +1,5 @@
 import {achievementsView} from './achievements.js';
-import {communityView} from './observation.js?v=20261028-transfers';
+import {communityView} from './observation.js?v=20261028-community-history';
 import {mapSection} from './world-map.js';
 const channel='https://www.twitch.tv/aiunderwatch';
 export function publicView(page,{oauthConfigured=false,servicesAvailable=true}={}) {
