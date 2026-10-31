@@ -1,0 +1,22 @@
+import {VOICE_OPTIONS} from './voice-options.js';
+export function mountVoicePicker(root,{voices=VOICE_OPTIONS,value='ash',locked=false}={}){
+ const pt=document.documentElement.lang.startsWith('pt');
+ if(!document.getElementById('voice-picker-style')){const style=document.createElement('style');style.id='voice-picker-style';style.textContent=`
+ .voice-picker{margin:20px 0;padding:18px 20px;border:1px solid #a1ad7455;background:linear-gradient(110deg,#20382b55,#0d1b1444);display:grid;grid-template-columns:1fr auto;gap:12px 16px;align-items:end}.voice-picker label{display:flex;flex-direction:column;gap:8px;font-size:13px;color:#ded8b9}.voice-picker select{width:100%;min-width:170px;background:#0e1b14;color:#ece7ce;border:1px solid #748466;padding:11px 12px;font:inherit}.voice-picker button.btn{background:#23382b;color:#e8dfbe;border:1px solid #8b956e;box-shadow:none;height:41px;display:flex;align-items:center;gap:9px;white-space:nowrap}.voice-picker button.btn:hover{background:#314934;color:#fff0c9}.voice-picker button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.5}.voice-picker small{grid-column:1/-1;color:#9eaf93;font-size:11px}.voice-picker small a{color:#c4b57b;text-decoration:none}.voice-picker[aria-disabled=true]{opacity:.7}.voice-picker select:focus-visible,.voice-picker button:focus-visible{outline:2px solid #dfc77d;outline-offset:3px}@media(max-width:520px){.voice-picker{padding:15px;grid-template-columns:1fr}.voice-picker button{justify-content:center}.voice-picker small{grid-column:1}}
+ `;document.head.append(style);}
+ const section=document.createElement('section');section.className='voice-picker';section.setAttribute('aria-disabled',String(locked));
+ const label=document.createElement('label');label.textContent=pt?'Voz do personagem':'Character voice';
+ const select=document.createElement('select');select.name='voiceKey';select.setAttribute('aria-label',label.textContent);select.disabled=locked;
+ for(const gender of ['female','male']){const group=document.createElement('optgroup');group.label=gender==='female'?(pt?'Vozes femininas':'Feminine voices'):(pt?'Vozes masculinas':'Masculine voices');
+  for(const voice of (voices.length?voices:VOICE_OPTIONS).filter(v=>v.gender===gender)){const option=document.createElement('option');option.value=voice.key;option.textContent=voice.label;option.selected=voice.key===value;group.append(option);}select.append(group);}
+ const audio=new Audio();audio.preload='none';const button=document.createElement('button');button.type='button';button.className='btn secondary';
+ const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 24 24');icon.innerHTML='<path d="M11 5 6 9H3v6h3l5 4ZM15 8c3 2 3 6 0 8M18 5c5 4 5 10 0 14"/>';
+ const caption=document.createElement('span');const reset=()=>caption.textContent=pt?'Ouvir amostra':'Listen to sample';reset();button.append(icon,caption);
+ audio.addEventListener('ended',reset);audio.addEventListener('error',()=>{reset();caption.textContent=pt?'Amostra indisponível':'Sample unavailable';});
+ select.addEventListener('change',()=>{audio.pause();reset();});
+ button.addEventListener('click',async()=>{if(!audio.paused){audio.pause();reset();return;}audio.src=new URL(`voice-samples/${select.value}.wav`,document.baseURI).href;try{await audio.play();caption.textContent=pt?'Parar':'Stop';}catch{caption.textContent=pt?'Amostra indisponível':'Sample unavailable';}});
+ const note=document.createElement('small');note.append(document.createTextNode(pt?'12 vozes · Inglês · ':'12 voices · English · '));const credits=document.createElement('a');credits.href='voice-credits.html';credits.target='_blank';credits.rel='noopener';credits.textContent=pt?'Créditos':'Credits';note.append(credits);
+ label.append(select);section.append(label,button,note);root.append(section);
+ const observer=new MutationObserver(()=>{if(!section.isConnected){audio.pause();observer.disconnect();}});observer.observe(document.body,{childList:true,subtree:true});
+ return {getValue:()=>select.value,destroy(){audio.pause();observer.disconnect();section.remove();}};
+}

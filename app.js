@@ -1,3 +1,4 @@
+import {mountVoicePicker} from './voice-picker.js';
 import {refugeTabs} from './refuge-tabs.js';
 import {conversationName,conversationAudience} from './conversation-audience.js';
 import {itemTransfersMarkup} from './item-transfers.js';
@@ -181,6 +182,9 @@ function openCustomizer(){
   openDialog(`<h2 id="dialogTitle">Your appearance.</h2><form id="customizerForm"><div id="characterWardrobe"></div><fieldset class="wardrobe-save-fields" ${locked?'disabled':''}><div class="form-field">Character name<strong>${esc(state.currentUser.displayName||state.currentUser.twitchUsername||'Twitch account')}</strong></div><label class="form-field">Mind<select name="modelKey">${models.map(m=>`<option value="${esc(m.key)}" ${m.key===a?.modelKey?'selected':''}>${esc(m.label)}</option>`).join('')}</select></label></fieldset><div class="wardrobe-save-row"><p>${policy}${locked?' <a href="https://www.twitch.tv/aiunderwatch" target="_blank" rel="noopener noreferrer">Twitch ↗</a>':''}</p><button class="btn" type="submit" ${!online||locked?'disabled':''}>${locked?'Appearance saved':saved?'Save appearance · 1 change':'Save appearance ↗'}</button></div></form>`);
   $('#dialog').classList.add('wardrobe-dialog');
   characterWardrobe=mountWardrobe($('#characterWardrobe'),{appearance:a?.appearance||{},locked});
+  mountVoicePicker($('#customizerForm'),{voices:state.voices,value:a?.voiceKey||(a?.appearance?.faceStyle==='feminine'?'willow':'ash'),locked});
+  $('#customizerForm .wardrobe-save-row').before($('#customizerForm .voice-picker'));
+
   const picker=document.createElement('section');$('#customizerForm .wardrobe-save-row').before(picker);
   characterSpawn=mountSpawnPicker(picker,{choices:state.spawnChoices,selected:(state.spawnChoices?.selectionMode==='group'?a?.initialSpawn?.groupId:a?.initialSpawn?.slotId)||'',locked:saved,onChange:id=>{$('#customizerForm button[type="submit"]').disabled=!online||locked||!id;}});
   if(!saved){$('#customizerForm button[type="submit"]').disabled=true;spawnPoll=setInterval(async()=>{if(document.hidden||pending||refreshing)return;try{const data=await request('/api/rpg/state');if(!characterSpawn)return;acceptState(data);}catch{}},5000);}
@@ -257,7 +261,7 @@ document.addEventListener('submit',async e=>{
   const a=ownAgent(),d=Object.fromEntries(new FormData(f));
   if(f.id==='whisperForm'&&await mutate('/api/rpg/whisper',{agentId:a?.id,prompt:whisperDraft.trim(),useExtraCredit:false},'Whisper queued.')){whisperDraft='';render();}
   if(f.id==='suggestionForm'&&await mutate('/api/rpg/community/suggest',{agentId:communityId,text:suggestionDrafts[communityId]?.trim()},'Suggestion added.')){suggestionDrafts[communityId]='';render();}
-  if(f.id==='customizerForm'){const appearance=appearanceFromForm(),spawnSlotId=characterSpawn?.getSelected();if(!a&&!spawnSlotId)return toast('Choose an available spawn on the map.',true);if(await mutate('/api/rpg/customize',{modelKey:d.modelKey,appearance,...(state.spawnChoices?.selectionMode==='group'?{spawnGroupId:spawnSlotId}:{spawnSlotId})},'Appearance saved and locked.'))closeDialog();else if(!a)try{acceptState(await request('/api/rpg/state'));}catch{}}
+  if(f.id==='customizerForm'){const appearance=appearanceFromForm(),spawnSlotId=characterSpawn?.getSelected();if(!a&&!spawnSlotId)return toast('Choose an available spawn on the map.',true);if(await mutate('/api/rpg/customize',{modelKey:d.modelKey,voiceKey:d.voiceKey,appearance,...(state.spawnChoices?.selectionMode==='group'?{spawnGroupId:spawnSlotId}:{spawnSlotId})},'Appearance saved and locked.'))closeDialog();else if(!a)try{acceptState(await request('/api/rpg/state'));}catch{}}
   if(f.id==='routineForm'){const steps=d.steps==='say'?'say:'+d.speech:d.steps;if(await mutate('/api/rpg/routine',{agentId:a?.id,routineId:f.dataset.id,action:'edit',name:d.name,trigger:d.trigger,steps},demo()?'Routine saved.':'Routine change queued.'))closeDialog();}
   if(f.id==='extraForm'){
     const type=f.dataset.type,camera=['camera','switch','spotlight'].includes(type);f.dataset.requestId??=crypto.randomUUID();
