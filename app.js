@@ -182,7 +182,7 @@ function openCustomizer(){
   openDialog(`<h2 id="dialogTitle">Your appearance.</h2><form id="customizerForm"><div id="characterWardrobe"></div><fieldset class="wardrobe-save-fields" ${locked?'disabled':''}><div class="form-field">Character name<strong>${esc(state.currentUser.displayName||state.currentUser.twitchUsername||'Twitch account')}</strong></div><label class="form-field">Mind<select name="modelKey">${models.map(m=>`<option value="${esc(m.key)}" ${m.key===a?.modelKey?'selected':''}>${esc(m.label)}</option>`).join('')}</select></label></fieldset><div class="wardrobe-save-row"><p>${policy}${locked?' <a href="https://www.twitch.tv/aiunderwatch" target="_blank" rel="noopener noreferrer">Twitch ↗</a>':''}</p><button class="btn" type="submit" ${!online||locked?'disabled':''}>${locked?'Appearance saved':saved?'Save appearance · 1 change':'Save appearance ↗'}</button></div></form>`);
   $('#dialog').classList.add('wardrobe-dialog');
   characterWardrobe=mountWardrobe($('#characterWardrobe'),{appearance:a?.appearance||{},locked});
-  mountVoicePicker($('#customizerForm'),{voices:state.voices,value:a?.voiceKey||(a?.appearance?.faceStyle==='feminine'?'willow':'ash'),locked});
+  mountVoicePicker($('#customizerForm'),{voices:state.voices,value:a?.voiceKey||(a?.appearance?.faceStyle==='feminine'?'willow':'ash'),locked:locked&&Boolean(a?.voiceChosenAt),onSave:a?.customized&&!a.voiceChosenAt?voiceKey=>mutate('/api/rpg/customize',{voiceOnly:true,voiceKey},'Voice saved.'):undefined});
   $('#customizerForm .wardrobe-save-row').before($('#customizerForm .voice-picker'));
 
   const picker=document.createElement('section');$('#customizerForm .wardrobe-save-row').before(picker);
